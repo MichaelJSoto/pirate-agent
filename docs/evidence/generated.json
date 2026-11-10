@@ -1,0 +1,28 @@
+{
+  "maze": {
+    "rows": 8,
+    "cols": 8,
+    "wall_density": 0.25,
+    "seed": 11
+  },
+  "layout": [
+    "#..##.##",
+    "......#.",
+    ".....#..",
+    "..#..#..",
+    "#..#.#.#",
+    "##.....#",
+    "#...##..",
+    "..###..T"
+  ],
+  "open_cells": 42,
+  "seed": 1671,
+  "stop_reason": "solved",
+  "games": 175,
+  "moves": 6236,
+  "seconds": 8.2,
+  "explored_share": 0.672,
+  "wins": 41,
+  "cells": 41,
+  "shortest_routes": 39
+}

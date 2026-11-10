@@ -1,0 +1,135 @@
+{
+  "maze": "cs370.maze",
+  "seeds": [
+    1671,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "runs": [
+    {
+      "seed": 1671,
+      "stop_reason": "solved",
+      "games": 286,
+      "moves": 19843,
+      "seconds": 21.0,
+      "explored_share": 0.596,
+      "wins": 50,
+      "cells": 50,
+      "shortest_routes": 47
+    },
+    {
+      "seed": 1,
+      "stop_reason": "solved",
+      "games": 282,
+      "moves": 20896,
+      "seconds": 20.6,
+      "explored_share": 0.6,
+      "wins": 50,
+      "cells": 50,
+      "shortest_routes": 44
+    },
+    {
+      "seed": 2,
+      "stop_reason": "solved",
+      "games": 393,
+      "moves": 30638,
+      "seconds": 31.5,
+      "explored_share": 0.515,
+      "wins": 50,
+      "cells": 50,
+      "shortest_routes": 44
+    },
+    {
+      "seed": 3,
+      "stop_reason": "solved",
+      "games": 247,
+      "moves": 18148,
+      "seconds": 19.2,
+      "explored_share": 0.636,
+      "wins": 50,
+      "cells": 50,
+      "shortest_routes": 33
+    },
+    {
+      "seed": 4,
+      "stop_reason": "solved",
+      "games": 282,
+      "moves": 22282,
+      "seconds": 23.2,
+      "explored_share": 0.61,
+      "wins": 50,
+      "cells": 50,
+      "shortest_routes": 50
+    },
+    {
+      "seed": 5,
+      "stop_reason": "solved",
+      "games": 273,
+      "moves": 20827,
+      "seconds": 19.9,
+      "explored_share": 0.625,
+      "wins": 50,
+      "cells": 50,
+      "shortest_routes": 49
+    },
+    {
+      "seed": 6,
+      "stop_reason": "solved",
+      "games": 267,
+      "moves": 22371,
+      "seconds": 22.7,
+      "explored_share": 0.601,
+      "wins": 50,
+      "cells": 50,
+      "shortest_routes": 50
+    },
+    {
+      "seed": 7,
+      "stop_reason": "solved",
+      "games": 323,
+      "moves": 21396,
+      "seconds": 28.6,
+      "explored_share": 0.604,
+      "wins": 50,
+      "cells": 50,
+      "shortest_routes": 50
+    },
+    {
+      "seed": 8,
+      "stop_reason": "solved",
+      "games": 273,
+      "moves": 23450,
+      "seconds": 21.5,
+      "explored_share": 0.586,
+      "wins": 50,
+      "cells": 50,
+      "shortest_routes": 44
+    },
+    {
+      "seed": 9,
+      "stop_reason": "solved",
+      "games": 317,
+      "moves": 20418,
+      "seconds": 23.8,
+      "explored_share": 0.601,
+      "wins": 50,
+      "cells": 50,
+      "shortest_routes": 49
+    }
+  ],
+  "solved": 10,
+  "all_cells_win": 10,
+  "games_median": 282.0,
+  "games_min": 247,
+  "games_max": 393,
+  "seconds_mean": 23.2,
+  "shortest_routes_min": 33,
+  "shortest_routes_max": 50
+}

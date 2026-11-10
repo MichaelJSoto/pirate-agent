@@ -36,7 +36,16 @@ import os
 os.environ.setdefault("CUDA_VISIBLE_DEVICES", "-1")  # CPU only, so a seeded run repeats on any machine
 os.environ.setdefault("TF_ENABLE_ONEDNN_OPTS", "0")  # one fixed order of floating-point operations
 os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")  # hide TensorFlow's informational messages
-logging.getLogger("tensorflow").setLevel(logging.ERROR)  # and its notice about GPUs on Windows
+
+
+def _not_windows_gpu_notice(record: logging.LogRecord) -> bool:
+    """Drops TensorFlow's notice that native Windows has no GPU support; this project runs on the CPU."""
+    return "GPU support is not available on native Windows" not in record.getMessage()
+
+
+# A filter, not just a level, because some hosts (Jupyter among them) reset the logger's level.
+logging.getLogger("tensorflow").addFilter(_not_windows_gpu_notice)
+logging.getLogger("tensorflow").setLevel(logging.ERROR)
 
 import hashlib
 import hmac

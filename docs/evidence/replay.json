@@ -1,0 +1,23 @@
+[
+  {
+    "capacity": 512,
+    "inserts": 20000,
+    "list_ns_per_insert": 81,
+    "deque_ns_per_insert": 29,
+    "speedup": 2.8
+  },
+  {
+    "capacity": 10000,
+    "inserts": 20000,
+    "list_ns_per_insert": 753,
+    "deque_ns_per_insert": 29,
+    "speedup": 25.6
+  },
+  {
+    "capacity": 100000,
+    "inserts": 20000,
+    "list_ns_per_insert": 8207,
+    "deque_ns_per_insert": 30,
+    "speedup": 273.1
+  }
+]

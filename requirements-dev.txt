@@ -1,5 +1,6 @@
 # Development tools: tests, lint, spelling, the dependency audit, and the demo notebook.
 # Programmer: Michael Soto | Date: November 10, 2026 | Version: 2.0.0
+# Intent: everything a developer or CI needs beyond the runtime packages.
 # Decision: tools are pinned like the runtime packages so CI gives the same answer every time.
 -r requirements.txt
 pytest==9.2.0

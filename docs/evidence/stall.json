@@ -1,0 +1,16 @@
+{
+  "learning_rate": 1e-09,
+  "patience": 300,
+  "max_epochs": 15000,
+  "seed": 1671,
+  "stop_reason": "stalled",
+  "games": 374,
+  "moves": 31992,
+  "seconds": 30.7,
+  "explored_share": 0.49,
+  "wins": 2,
+  "cells": 50,
+  "shortest_routes": 2,
+  "best_win_rate": 0.34375,
+  "games_not_played": 14626
+}
