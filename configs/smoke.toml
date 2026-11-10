@@ -1,0 +1,19 @@
+# A tiny run for checking an installation: a 4 x 4 generated maze that trains in seconds.
+# Programmer: Michael Soto | Date: November 10, 2026 | Version: 2.0.0
+# Intent: let a new developer confirm the whole pipeline (train, save, evaluate) quickly.
+# Decision: small enough for CI, large enough that the pirate must actually learn a route.
+
+[maze.generate]
+rows = 4
+cols = 4
+wall_density = 0.2
+seed = 5
+
+[training]
+seed = 7
+max_epochs = 600
+patience = 200
+log_every = 50
+
+[output]
+runs_dir = "../runs"
