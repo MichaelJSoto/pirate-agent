@@ -1,0 +1,7 @@
+# The CS 370 originals are kept byte for byte as submitted, so Git never converts their line endings.
+original/** -text
+# Everything written for the enhancement uses LF line endings in the repository.
+* text=auto eol=lf
+*.keras binary
+*.png binary
+*.zip binary
