@@ -2,7 +2,7 @@
 
 Programmer: Michael Soto
 Date: November 10, 2026
-Version: 2.0.0
+Version: 2.1.0
 Course: CS 499 Computer Science Capstone, Enhancement One (software design and engineering)
 
 Intent:
@@ -13,4 +13,4 @@ Decision:
     TensorFlow, so the maze, replay and audit modules (and their tests) run without it.
 """
 
-__version__ = "2.0.0"
+__version__ = "2.1.0"

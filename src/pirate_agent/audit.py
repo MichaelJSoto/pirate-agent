@@ -2,7 +2,7 @@
 
 Programmer: Michael Soto
 Date: November 10, 2026
-Version: 2.0.0
+Version: 2.1.0
 Course: CS 499 Computer Science Capstone, Enhancement One (software design and engineering)
 Origin: the PolicyAudit, route_grid and completion_check cells of the CS 370 notebook.
 
@@ -16,6 +16,11 @@ Decision:
     neural network, a hand-written test policy, or a future agent without importing
     TensorFlow. The fewest possible moves come from one breadth-first search outward from the
     treasure, O(rows * cols), instead of a search from each starting cell.
+
+    An observation encodes only the walls and the pirate's cell, never the route taken, so a
+    greedy policy is really a fixed table of one move per cell. cell_policy() fills that table
+    with one batched network call for all cells, after which a full audit needs no further
+    predictions. That is what makes it affordable to audit after every training game.
 """
 
 from __future__ import annotations
@@ -25,9 +30,10 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .maze import STEP_LIMIT_FACTOR, Cell, Maze, MazeEnv, Rewards, Status, shortest_moves
+from .maze import PIRATE_MARK, STEP_LIMIT_FACTOR, Cell, Maze, MazeEnv, Rewards, Status, shortest_moves
 
 Policy = Callable[[np.ndarray], int]
+BatchPolicy = Callable[[np.ndarray], np.ndarray]
 
 
 @dataclass(frozen=True)
@@ -87,6 +93,25 @@ class AuditReport:
     def to_dict(self) -> dict[str, object]:
         """The totals for a run log."""
         return {"cells": self.cells, "wins": self.wins, "shortest_routes": self.optimal}
+
+
+def cell_policy(maze: Maze, batch_policy: BatchPolicy) -> Policy:
+    """A policy that looks up one precomputed move per cell, from a single batched call.
+
+    `batch_policy` maps an (n, cells) array of observations to n actions. The returned policy
+    gives exactly the moves a per-step call would, because an observation depends only on the
+    pirate's cell.
+    """
+    env = MazeEnv(maze)
+    cells = maze.free_cells
+    observations = np.concatenate([env.reset(cell) for cell in cells])
+    table = {cell: int(action) for cell, action in zip(cells, batch_policy(observations), strict=True)}
+    cols = maze.shape[1]
+
+    def policy(observation: np.ndarray) -> int:
+        return table[divmod(int(np.argmax(observation[0] == PIRATE_MARK)), cols)]
+
+    return policy
 
 
 def play_greedy(

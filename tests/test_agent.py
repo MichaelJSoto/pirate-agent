@@ -2,7 +2,7 @@
 
 Programmer: Michael Soto
 Date: November 10, 2026
-Version: 2.0.0
+Version: 2.1.0
 Course: CS 499 Computer Science Capstone, Enhancement One (software design and engineering)
 
 Intent:
@@ -61,6 +61,32 @@ def test_network_matches_cs370():
 def test_greedy_action_is_the_largest_q_value(agent):
     observation = np.ones((1, 6), dtype=np.float32)
     assert agent.greedy_action(observation) == int(np.argmax(agent.q_values(observation)))
+
+
+def test_batched_moves_match_single_moves(agent):
+    from pirate_agent.audit import audit_policy, cell_policy
+    from pirate_agent.maze import generate_maze
+
+    observations = np.random.default_rng(1).random((20, 6), dtype=np.float32)
+    singles = [agent.greedy_action(row.reshape(1, -1)) for row in observations]
+    assert agent.greedy_actions(observations).tolist() == singles
+    maze = generate_maze(2, 3, wall_density=0.0, seed=0)  # six cells, matching the agent's input
+    assert audit_policy(maze, cell_policy(maze, agent.greedy_actions)) == audit_policy(
+        maze, agent.greedy_action
+    )
+
+
+def test_snapshot_and_restore(agent):
+    observation = np.full((1, 6), 0.5, dtype=np.float32)
+    before, saved = agent.q_values(observation), agent.snapshot()
+    agent.learn(batch())
+    assert not np.allclose(agent.q_values(observation), before)
+    agent.restore(saved)
+    assert np.allclose(agent.q_values(observation), before)
+    assert all(
+        np.array_equal(a, b)
+        for a, b in zip(agent.network.get_weights(), agent.target_network.get_weights(), strict=True)
+    )
 
 
 def test_learning_lowers_the_loss_on_a_fixed_batch(agent):

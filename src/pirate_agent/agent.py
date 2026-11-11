@@ -2,7 +2,7 @@
 
 Programmer: Michael Soto
 Date: November 10, 2026
-Version: 2.0.0
+Version: 2.1.0
 Course: CS 499 Computer Science Capstone, Enhancement One (software design and engineering)
 Origin: build_model() and train_step() from the CS 370 notebook, and get_data() from the
 GameExperience.py starter file.
@@ -242,6 +242,20 @@ class DQNAgent:
     def greedy_action(self, observation: np.ndarray) -> int:
         """The move with the highest Q-value. This is the trained pirate's policy."""
         return int(np.argmax(self.q_values(observation)))
+
+    def greedy_actions(self, observations: np.ndarray) -> np.ndarray:
+        """The greedy move for each row of an (n, cells) batch, in one network call."""
+        batch = np.asarray(observations, dtype=np.float32).reshape(len(observations), -1)
+        return np.argmax(self._predict(tf.constant(batch)).numpy(), axis=1)
+
+    def snapshot(self) -> list[np.ndarray]:
+        """A copy of the online network's weights, for keeping the best version during training."""
+        return [weights.copy() for weights in self.network.get_weights()]
+
+    def restore(self, snapshot: list[np.ndarray]) -> None:
+        """Puts saved weights back into the online and target networks."""
+        self.network.set_weights(snapshot)
+        self.sync_target()
 
     def learn(self, batch: Sequence[Transition]) -> float:
         """One gradient step on a minibatch; refreshes the target network on schedule. Returns the loss."""

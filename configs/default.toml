@@ -23,6 +23,8 @@ epsilon_settled = 0.05
 target_win_rate = 1.0      # stop when every game in the window is won and the audit passes
 win_window = 32            # half the maze cells
 patience = 300             # stop a stalled run after this many games without a better win rate
+target_shortest_share = 1.0  # after every cell wins, keep training until all routes are shortest
+polish_patience = 200      # or until this many games add no shortest route; the best version is kept
 log_every = 25
 
 [output]
