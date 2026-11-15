@@ -1,8 +1,8 @@
 """pirate_agent: a deep Q-learning pirate that learns to reach the treasure in a validated maze.
 
 Programmer: Michael Soto
-Date: November 10, 2026
-Version: 2.1.0
+Date: November 15, 2026
+Version: 2.1.1
 Course: CS 499 Computer Science Capstone, Enhancement One (software design and engineering)
 
 Intent:
@@ -13,4 +13,4 @@ Decision:
     TensorFlow, so the maze, replay and audit modules (and their tests) run without it.
 """
 
-__version__ = "2.1.0"
+__version__ = "2.1.1"

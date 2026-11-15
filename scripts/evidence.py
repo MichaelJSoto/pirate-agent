@@ -1,8 +1,8 @@
 """Reproduces every number the README and the enhancement narrative report.
 
 Programmer: Michael Soto
-Date: November 10, 2026
-Version: 2.1.0
+Date: November 15, 2026
+Version: 2.1.1
 Course: CS 499 Computer Science Capstone, Enhancement One (software design and engineering)
 
 Intent:
@@ -61,6 +61,7 @@ def train_once(maze, training):
 
 
 def row(seed, result, report):
+    """One run as a flat dictionary: how it stopped, how long it took, and its route audit."""
     return {
         "seed": seed,
         "stop_reason": str(result.stop_reason),
@@ -77,6 +78,7 @@ def row(seed, result, report):
 
 
 def seed_sweep():
+    """Ten seeded runs on the CS 370 maze, with the spread of games played and shortest routes."""
     config = load_config(ROOT / "configs" / "default.toml")
     maze = load_maze(config.maze_file)
     rows = []
@@ -128,6 +130,7 @@ def summary():
     """docs/evidence/SUMMARY.md: every evidence file as one readable page."""
 
     def load(name):
+        """Reads one evidence file written by an earlier job."""
         return json.loads((OUT / name).read_text(encoding="utf-8"))
 
     sweep, stall_run, gen, audit = (
@@ -249,6 +252,7 @@ def stall():
 
 
 def generated():
+    """A run on a generated maze, showing the agent is not tied to the one CS 370 layout."""
     config = load_config(ROOT / "configs" / "generated.toml")
     settings = config.generate
     maze = generate_maze(settings.rows, settings.cols, settings.wall_density, settings.seed)
@@ -291,6 +295,7 @@ def dependency_audit():
     """pip-audit on the CS 370 pins and on requirements.txt."""
 
     def audit(lines):
+        """Runs pip-audit on a temporary requirements file holding `lines`."""
         with tempfile.TemporaryDirectory() as folder:
             req = Path(folder) / "requirements.txt"
             req.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -342,6 +347,7 @@ JOBS = {
 
 
 def main() -> None:
+    """Runs the chosen jobs (all of them by default) and writes each result to docs/evidence/."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--only", nargs="+", choices=sorted(JOBS), help="run only these jobs")
     args = parser.parse_args()

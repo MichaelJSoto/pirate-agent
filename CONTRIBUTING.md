@@ -64,6 +64,9 @@ TOML, YAML and requirements files use the same fields in `#` comments.
 **Comments explain intent and decisions**, not what a line plainly does. "Checked before the
 revisit rule, or the -0.75 penalty could never be paid" is useful; "check if invalid" is not.
 
+**Every public module, class, function and method has a docstring.** Ruff's D1 rules fail CI
+when one is missing. Tests are exempt, because a test's name already states what it checks.
+
 **Tests come with every behavior change.** A bug fix starts with a test that fails on the old
 code. Use the fixtures in `tests/conftest.py` so expected numbers stay traceable to the
 CS 370 notebook.

@@ -1,8 +1,8 @@
 """Runs the original CS 370 notebook's training code unchanged and records how long it takes.
 
 Programmer: Michael Soto
-Date: November 10, 2026
-Version: 2.0.0
+Date: November 15, 2026
+Version: 2.1.1
 Course: CS 499 Computer Science Capstone, Enhancement One (software design and engineering)
 
 Intent:
@@ -37,6 +37,7 @@ LAST_CELL = "audit_rows = PolicyAudit(model, maze).rows()"  # the route audit ce
 
 
 def code_cells():
+    """Yields each code cell of the original notebook, minus shell (!) and magic (%) lines."""
     notebook = json.loads((ORIGINAL / "Soto_Michael_ProjectTwo.ipynb").read_text(encoding="utf-8"))
     for cell in notebook["cells"]:
         if cell["cell_type"] != "code":
@@ -47,6 +48,7 @@ def code_cells():
 
 
 def main() -> None:
+    """Runs the notebook's cells up to the route audit, times the qtrain() cell, and writes original.json."""
     sys.path.insert(0, str(ORIGINAL))  # so `from TreasureMaze import TreasureMaze` finds the starter files
     os.chdir(ORIGINAL)
     namespace: dict[str, object] = {"__name__": "__notebook__"}

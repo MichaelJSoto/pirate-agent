@@ -1,5 +1,5 @@
 # Package metadata, the command-line entry point, and the settings for pytest, Ruff and codespell.
-# Programmer: Michael Soto | Date: November 10, 2026 | Version: 2.1.0
+# Programmer: Michael Soto | Date: November 15, 2026 | Version: 2.1.1
 # Intent: one file that tells another developer how the project is built, run, linted and tested.
 # Decision: exact dependency versions live in requirements.txt, which CI audits, so this file only
 # names the packages; that keeps one reviewed source of truth for what is installed.
@@ -10,7 +10,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pirate-agent"
-version = "2.1.0"
+version = "2.1.1"
 description = "A deep Q-learning pirate that learns to reach the treasure in a validated maze."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -36,12 +36,16 @@ target-version = "py312"
 extend-exclude = ["original"]
 
 [tool.ruff.lint]
-# pycodestyle, Pyflakes, import order, bugbear, pyupgrade, naming, simplify, and the Bandit
-# security rules (S), so risky calls such as pickle or eval are flagged on every push.
-select = ["E", "W", "F", "I", "B", "UP", "N", "SIM", "S"]
+# pycodestyle, Pyflakes, import order, bugbear, pyupgrade, naming, simplify, the Bandit
+# security rules (S), so risky calls such as pickle or eval are flagged on every push, and the
+# missing-docstring rules (D1), so every public module, class and function explains itself.
+select = ["E", "W", "F", "I", "B", "UP", "N", "SIM", "S", "D1"]
+# Magic methods and __init__ are documented by their class docstring.
+ignore = ["D105", "D107"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101"]  # pytest uses plain assert statements
+# pytest uses plain assert statements, and each test's name states what it checks.
+"tests/*" = ["S101", "D1"]
 
 [tool.codespell]
 skip = "./original,*.ipynb,*.keras,./runs,./.git"

@@ -1,8 +1,8 @@
 """Training settings and the TOML configuration file that supplies them.
 
 Programmer: Michael Soto
-Date: November 10, 2026
-Version: 2.1.0
+Date: November 15, 2026
+Version: 2.1.1
 Course: CS 499 Computer Science Capstone, Enhancement One (software design and engineering)
 
 Intent:
@@ -58,12 +58,15 @@ class TrainingConfig:
     log_every: int = 25  # games between progress lines in the log
 
     def memory_for(self, cells: int) -> int:
+        """Replay memory size for a maze of `cells` cells: the configured value, or 8 moves per cell."""
         return self.memory_size if self.memory_size is not None else 8 * cells
 
     def window_for(self, cells: int) -> int:
+        """Win-rate window for a maze of `cells` cells: the configured value, or half the cells (CS 370)."""
         return self.win_window if self.win_window is not None else max(1, cells // 2)
 
     def to_dict(self) -> dict[str, Any]:
+        """Every setting as a plain dictionary, recorded in each run log."""
         return dataclasses.asdict(self)
 
 

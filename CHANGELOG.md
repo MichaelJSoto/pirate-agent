@@ -2,6 +2,25 @@
 
 All notable changes to this project. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [2.1.1] - 2026-11-15
+
+Documentation only; no behavior changes, and the 2.1.0 evidence and pretrained run still apply.
+The Milestone One feedback asked that the good comments in the original code be kept through the
+enhancement, and the Week 3 announcement asked that any reviewer be able to follow the logic.
+
+### Added
+- A docstring on every public module, class, function and method in `src/` and `scripts/`,
+  including `Trainer.train()`, the four command handlers and the `Learner` protocol.
+- Inline comments at the logic-heavy spots: the Bellman target, the four model-loading checks,
+  the generator's search from the treasure, early stopping and the polish snapshot, the batched
+  route table, the atomic run-log write, and the command-line exit codes.
+- Explanations from the CS 370 notebook and starter files carried into the modules that replaced
+  them, such as the reward scale, the minimum-reward cutoff and the step limit.
+
+### Changed
+- Ruff now runs the missing-docstring rules (D1) on every push, so a public definition without a
+  docstring fails CI. Tests are exempt, because each test's name states what it checks.
+
 ## [2.1.0] - 2026-11-10
 
 ### Added

@@ -1,8 +1,8 @@
 """Command-line interface: train, evaluate, play and generate.
 
 Programmer: Michael Soto
-Date: November 10, 2026
-Version: 2.1.0
+Date: November 15, 2026
+Version: 2.1.1
 Course: CS 499 Computer Science Capstone, Enhancement One (software design and engineering)
 
 Intent:
@@ -48,6 +48,7 @@ from .runlog import (
     write_run_log,
 )
 
+# Exit codes, so a script calling this program can tell the failures apart (2 is argparse's own).
 EXIT_OK = 0
 EXIT_INPUT = 3
 EXIT_MODEL = 4
@@ -98,17 +99,20 @@ def _load_run(run_dir: Path) -> tuple[dict[str, Any], Maze, Any]:
 
 
 def cmd_train(args: argparse.Namespace) -> int:
+    """`train`: trains and audits a new agent, then saves its model, history and run log in a new folder."""
     config = load_config(args.config)
     training = config.training if args.seed is None else dataclasses.replace(config.training, seed=args.seed)
     maze, source = _maze_from_config(config)  # validated before TensorFlow is even imported
     from .agent import DQNAgent, configure_determinism
     from .trainer import Trainer
 
+    # Seed everything before the network is built, so its starting weights repeat too.
     configure_determinism(training.seed)
     agent = DQNAgent.create(maze.size, training)
     result = Trainer(agent, maze, training).train()
     report = audit_policy(maze, agent.greedy_action)
 
+    # The model's SHA-256 goes into the run log, which is what evaluate and play check it against.
     run_id = new_run_id(training.seed)
     run_dir = make_run_dir(config.runs_dir, run_id)
     digest = agent.save(run_dir / MODEL_NAME)
@@ -149,6 +153,7 @@ def cmd_train(args: argparse.Namespace) -> int:
 
 
 def cmd_evaluate(args: argparse.Namespace) -> int:
+    """`evaluate`: reloads a saved run's model with every safety check and audits it from every cell."""
     from .agent import ModelFileError
 
     try:
@@ -161,6 +166,7 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
     print(report.summary())
     print()
     print(route_grid(report, maze))
+    # A fresh audit that disagrees with the logged one means the run cannot be reproduced as recorded.
     logged = record.get("audit")
     if isinstance(logged, dict) and logged != report.to_dict():
         log.warning("this audit differs from the one in the run log: %s", logged)
@@ -168,6 +174,7 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
 
 
 def cmd_play(args: argparse.Namespace) -> int:
+    """`play`: draws the trained pirate's route from one starting cell next to the shortest possible."""
     from .agent import ModelFileError
 
     start = _parse_cell(args.start)
@@ -186,10 +193,12 @@ def cmd_play(args: argparse.Namespace) -> int:
 
 
 def cmd_generate(args: argparse.Namespace) -> int:
+    """`generate`: writes a random .maze file in which every free cell can reach the treasure."""
     maze = generate_maze(args.rows, args.cols, args.density, args.seed)
     out = Path(args.out)
     if out.suffix != MAZE_SUFFIX:
         raise MazeError(f"{out.name}: maze files must end in '{MAZE_SUFFIX}'")
+    # Never overwrite a maze file by accident; replacing one takes an explicit --force.
     if out.exists() and not args.force:
         raise MazeError(f"{out.name} already exists; pass --force to replace it")
     note = f"Generated {args.rows} x {args.cols} maze, wall density {args.density}, seed {args.seed}"
@@ -200,6 +209,7 @@ def cmd_generate(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """The argument parser: global options, then one subcommand per task, each tied to its handler."""
     parser = argparse.ArgumentParser(
         prog="pirate-agent",
         description="Train and check a deep Q-learning pirate that finds the treasure in a maze.",
@@ -236,11 +246,14 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Runs one command and returns its exit code; an input error becomes one log line, not a traceback."""
     args = build_parser().parse_args(argv)
     level = logging.DEBUG if args.verbose else logging.WARNING if args.quiet else logging.INFO
     logging.basicConfig(level=level, format="%(levelname)s %(name)s: %(message)s", stream=sys.stderr)
     try:
         return args.handler(args)
+    # A bad maze, configuration or run log is the user's input, not a bug, so it gets one plain
+    # sentence and exit code 3 instead of a stack trace.
     except (MazeError, ConfigError, RunLogError) as error:
         log.error("%s", error)
         return EXIT_INPUT
