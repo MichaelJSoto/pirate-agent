@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "run_id": "20261110-153909-seed1671",
+  "config_file": "default.toml",
+  "versions": {
+    "python": "3.12.10",
+    "pirate_agent": "2.0.0",
+    "numpy": "2.5.4",
+    "tensorflow": "2.21.0",
+    "keras": "3.15.1"
+  },
+  "maze": {
+    "source": "cs370.maze",
+    "rows": 8,
+    "cols": 8,
+    "target": [
+      7,
+      7
+    ],
+    "layout": [
+      ".#......",
+      ".#...#..",
+      "....#.#.",
+      "...#....",
+      "..#.....",
+      "...#.###",
+      "...#....",
+      "....#..T"
+    ]
+  },
+  "training": {
+    "seed": 1671,
+    "max_epochs": 15000,
+    "memory_size": 512,
+    "batch_size": 32,
+    "target_sync_every": 50,
+    "learning_rate": 0.001,
+    "discount": 0.95,
+    "epsilon_start": 1.0,
+    "epsilon_min": 0.05,
+    "epsilon_decay": 0.995,
+    "settle_win_rate": 0.9,
+    "epsilon_settled": 0.05,
+    "target_win_rate": 1.0,
+    "win_window": 32,
+    "patience": 300,
+    "log_every": 25
+  },
+  "result": {
+    "stop_reason": "solved",
+    "epochs": 286,
+    "moves": 19843,
+    "explored_moves": 11829,
+    "explored_share": 0.5961,
+    "seconds": 20.6,
+    "win_rate": 1.0,
+    "best_win_rate": 1.0
+  },
+  "audit": {
+    "cells": 50,
+    "wins": 50,
+    "shortest_routes": 47
+  },
+  "model": {
+    "file": "model.keras",
+    "sha256": "a3937456255628fe2e6aad87ebb355cd97c0d6f7a6c4f159a05a50c9d3830f17",
+    "bytes": 59267,
+    "parameters": 8708
+  }
+}
