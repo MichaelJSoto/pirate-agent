@@ -1,8 +1,8 @@
 """Bounded experience replay memory for the deep Q-learning agent.
 
 Programmer: Michael Soto
-Date: November 10, 2026
-Version: 2.0.0
+Date: November 15, 2026
+Version: 2.1.1
 Course: CS 499 Computer Science Capstone, Enhancement One (software design and engineering)
 Origin: replaces the memory half of GameExperience.py, a starter file SNHU supplied for CS 370.
 
@@ -49,6 +49,7 @@ class ReplayBuffer:
 
     @property
     def capacity(self) -> int:
+        """The most moves the memory holds before the oldest is dropped."""
         return int(self._items.maxlen or 0)
 
     def __len__(self) -> int:
@@ -69,5 +70,7 @@ class ReplayBuffer:
         if batch_size < 1:
             raise ValueError(f"batch_size must be at least 1; got {batch_size}")
         count = len(self._items)
+        # Early in training the memory can hold fewer moves than a batch needs, so only then may a
+        # move be picked twice; after that every move in a batch is distinct.
         picks = self._rng.choice(count, size=batch_size, replace=count < batch_size)
         return [self._items[int(i)] for i in picks]

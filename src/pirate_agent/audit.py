@@ -1,8 +1,8 @@
 """Route audit: plays a policy greedily from every free cell and compares it with the shortest path.
 
 Programmer: Michael Soto
-Date: November 10, 2026
-Version: 2.1.0
+Date: November 15, 2026
+Version: 2.1.1
 Course: CS 499 Computer Science Capstone, Enhancement One (software design and engineering)
 Origin: the PolicyAudit, route_grid and completion_check cells of the CS 370 notebook.
 
@@ -46,10 +46,12 @@ class CellResult:
 
     @property
     def won(self) -> bool:
+        """True if the policy reached the treasure from this cell within the step limit."""
         return self.moves is not None
 
     @property
     def optimal(self) -> bool:
+        """True if it reached the treasure in the fewest moves the maze allows."""
         return self.moves is not None and self.moves == self.fewest
 
 
@@ -61,18 +63,22 @@ class AuditReport:
 
     @property
     def cells(self) -> int:
+        """The number of starting cells audited: every free cell except the treasure."""
         return len(self.results)
 
     @property
     def wins(self) -> int:
+        """How many starting cells reach the treasure."""
         return sum(result.won for result in self.results)
 
     @property
     def optimal(self) -> int:
+        """How many starting cells reach the treasure by a shortest route."""
         return sum(result.optimal for result in self.results)
 
     @property
     def all_win(self) -> bool:
+        """The CS 370 completion check: True only if the pirate wins from every starting cell."""
         return self.wins == self.cells
 
     def summary(self) -> str:
@@ -104,11 +110,14 @@ def cell_policy(maze: Maze, batch_policy: BatchPolicy) -> Policy:
     """
     env = MazeEnv(maze)
     cells = maze.free_cells
+    # One observation per starting cell, stacked into a single (cells, maze size) batch.
     observations = np.concatenate([env.reset(cell) for cell in cells])
+    # The whole policy as a lookup table: one network call fills in the move for every cell.
     table = {cell: int(action) for cell, action in zip(cells, batch_policy(observations), strict=True)}
     cols = maze.shape[1]
 
     def policy(observation: np.ndarray) -> int:
+        """Finds the pirate's cell from where PIRATE_MARK sits in the row, then looks up its move."""
         return table[divmod(int(np.argmax(observation[0] == PIRATE_MARK)), cols)]
 
     return policy
@@ -123,6 +132,8 @@ def play_greedy(
     observation = env.reset(start)
     route = [env.pirate]
     status = Status.PLAYING
+    # The step limit is the notebook's safety cutoff: a policy that loops between two cells
+    # would otherwise play forever, because the audit never explores.
     for _ in range(step_limit):
         observation, _, status = env.step(policy(observation))
         route.append(env.pirate)
@@ -134,6 +145,7 @@ def play_greedy(
 def audit_policy(maze: Maze, policy: Policy, rewards: Rewards | None = None) -> AuditReport:
     """Plays `policy` from every free cell and records its route length next to the shortest."""
     env = MazeEnv(maze, rewards)
+    # One search from the treasure gives the fewest moves from every cell at once.
     fewest = shortest_moves(maze.grid, maze.target)
     results = []
     for cell in maze.free_cells:
@@ -160,6 +172,7 @@ def route_grid(report: AuditReport, maze: Maze) -> str:
         if result.moves is None:
             grid[row][col] = "  x"
         else:
+            # Moves taken, right-aligned, with '*' flagging a cell that has a shorter route.
             grid[row][col] = f"{result.moves:>2}" + ("*" if result.moves > result.fewest else " ")
     return "\n".join(" ".join(line) for line in grid)
 

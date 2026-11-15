@@ -1,8 +1,8 @@
 """Draws the README figures from the reference run: the training curve and the learned policy.
 
 Programmer: Michael Soto
-Date: November 10, 2026
-Version: 2.1.0
+Date: November 15, 2026
+Version: 2.1.1
 Course: CS 499 Computer Science Capstone, Enhancement One (software design and engineering)
 
 Intent:
@@ -52,6 +52,7 @@ THEMES = {
 
 
 def save(fig, name: str) -> None:
+    """Writes a figure to docs/images/ with no software name in its PNG metadata, then closes it."""
     fig.savefig(
         OUT / name, dpi=160, bbox_inches="tight", facecolor=fig.get_facecolor(), metadata={"Software": None}
     )
@@ -59,6 +60,7 @@ def save(fig, name: str) -> None:
 
 
 def training_curve(theme: dict[str, str], record: dict) -> plt.Figure:
+    """The win rate over the last window of games, with the solve point and the polish stage marked."""
     with (RUN / "history.csv").open(encoding="utf-8") as stream:
         rows = list(csv.DictReader(stream))
     games = np.array([int(r["epoch"]) for r in rows]) + 1
@@ -66,6 +68,7 @@ def training_curve(theme: dict[str, str], record: dict) -> plt.Figure:
     window = record["training"]["win_window"]
     fig, ax = plt.subplots(figsize=(6.4, 3.2), facecolor=theme["surface"])
     ax.set_facecolor(theme["surface"])
+    # Plotted only from the first full window, because the win rate does not exist before it.
     ax.plot(games[window - 1 :], rate[window - 1 :], color=theme["series"], linewidth=2)
     ax.set_xlim(0, games[-1] + 5)
     ax.set_ylim(0, 104)
@@ -93,6 +96,7 @@ def training_curve(theme: dict[str, str], record: dict) -> plt.Figure:
 
 
 def policy_map(theme: dict[str, str], record: dict) -> plt.Figure:
+    """The trained pirate's move in every free cell as an arrow; cells off a shortest route are outlined."""
     from pirate_agent.agent import DQNAgent
     from pirate_agent.config import TrainingConfig
 
@@ -147,6 +151,7 @@ def policy_map(theme: dict[str, str], record: dict) -> plt.Figure:
 
 
 def main() -> None:
+    """Draws both figures in a light and a dark version from the pretrained reference run."""
     OUT.mkdir(parents=True, exist_ok=True)
     record = read_run_log(RUN / "run.json")
     for name, theme in THEMES.items():

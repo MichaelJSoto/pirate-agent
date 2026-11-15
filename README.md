@@ -178,8 +178,9 @@ stopping rules, the network and its learning step, the model-file attacks (a `La
 renamed `.h5`, a smuggled archive entry, a changed byte), and a full train, evaluate and play cycle
 on a tiny maze.
 
-GitHub Actions runs three jobs on every push and pull request: Ruff (lint, format and Bandit
-security rules) with codespell, the test suite, and `pip-audit` on the pinned dependencies.
+GitHub Actions runs three jobs on every push and pull request: Ruff (lint, format, Bandit
+security rules and missing docstrings) with codespell, the test suite, and `pip-audit` on the
+pinned dependencies.
 
 ## Results
 

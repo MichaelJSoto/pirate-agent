@@ -1,8 +1,8 @@
 """Training loop: epsilon-greedy games, replay learning, early stopping, route polishing and logging.
 
 Programmer: Michael Soto
-Date: November 10, 2026
-Version: 2.1.0
+Date: November 15, 2026
+Version: 2.1.1
 Course: CS 499 Computer Science Capstone, Enhancement One (software design and engineering)
 Origin: qtrain(), Explorer, ReplayLearner, TargetSync and play_training_game() from the CS 370
 notebook.
@@ -58,18 +58,30 @@ log = logging.getLogger(__name__)
 class Learner(Protocol):
     """What the trainer needs from an agent: greedy moves, a learning step, and snapshots."""
 
-    def greedy_action(self, observation: np.ndarray) -> int: ...
+    def greedy_action(self, observation: np.ndarray) -> int:
+        """The move with the highest Q-value for one observation."""
+        ...
 
-    def greedy_actions(self, observations: np.ndarray) -> np.ndarray: ...
+    def greedy_actions(self, observations: np.ndarray) -> np.ndarray:
+        """The greedy move for every row of a batch, used by the route audit."""
+        ...
 
-    def learn(self, batch: Sequence[Transition]) -> float: ...
+    def learn(self, batch: Sequence[Transition]) -> float:
+        """One learning step on a minibatch of stored moves; returns the loss."""
+        ...
 
-    def snapshot(self) -> Any: ...
+    def snapshot(self) -> Any:
+        """A copy of whatever restore() needs to bring back the current version."""
+        ...
 
-    def restore(self, snapshot: Any) -> None: ...
+    def restore(self, snapshot: Any) -> None:
+        """Puts a version saved by snapshot() back in place."""
+        ...
 
 
 class StopReason(enum.StrEnum):
+    """Why a training run ended, as written to the run log."""
+
     SOLVED = "solved"  # every cell wins; see routes_complete for whether every route is shortest
     STALLED = "stalled"  # `patience` games without a better win rate, before any cell set fully won
     BUDGET = "max_epochs"  # the epoch budget ran out before every cell won
@@ -106,6 +118,7 @@ class TrainingResult:
 
     @property
     def explored_share(self) -> float:
+        """The share of all moves that were random exploration rather than the greedy move."""
         return self.explored_moves / self.moves if self.moves else 0.0
 
     def to_dict(self) -> dict[str, Any]:
@@ -136,6 +149,8 @@ class Explorer:
 
     def choose(self, env: MazeEnv, agent: Learner, observation: np.ndarray, epsilon: float) -> int:
         """A random valid move with probability epsilon, else the agent's greedy move."""
+        # Exploring picks among valid moves only, as in CS 370, so a random move never wastes a
+        # game bumping into a wall.
         valid = env.valid_actions()
         if valid and self.rng.random() < epsilon:
             self.explored += 1
@@ -166,6 +181,14 @@ class Trainer:
         return audit_policy(self.maze, cell_policy(self.maze, self.agent.greedy_actions), self.rewards)
 
     def train(self) -> TrainingResult:
+        """Plays and learns game by game until a stopping rule fires, then returns what happened.
+
+        Three rules can end a run. SOLVED: every cell wins and either enough cells take a
+        shortest route or polishing stops improving (the best version is restored). STALLED:
+        `patience` games pass, after the win-rate window fills, without a better win rate.
+        BUDGET: `max_epochs` games are played first. Epsilon, the replay memory and the win
+        history all start fresh on every call, so two runs never share state (finding S1).
+        """
         cfg = self.config
         env = MazeEnv(self.maze, self.rewards)
         buffer = ReplayBuffer(cfg.memory_for(self.maze.size), self.rng)
@@ -174,18 +197,18 @@ class Trainer:
         starts = self.maze.free_cells
         needed = math.ceil(cfg.target_shortest_share * len(starts))  # cells that must take a shortest route
         epsilon = cfg.epsilon_start  # every run starts from the configured value
-        recent: deque[bool] = deque(maxlen=window)
-        best = 0.0
-        stale = 0
+        recent: deque[bool] = deque(maxlen=window)  # the last `window` games, won or lost
+        best = 0.0  # best full-window win rate so far, for the stall rule
+        stale = 0  # games since that best improved
         moves = 0
         win_rate = 0.0
         history: list[EpochRecord] = []
         reason = StopReason.BUDGET
         solved_at: int | None = None
         first_shortest: int | None = None
-        best_shortest = -1
-        best_snapshot: Any = None
-        polish_stale = 0
+        best_shortest = -1  # most cells on a shortest route in any audited version
+        best_snapshot: Any = None  # the weights of that version, restored at the end
+        polish_stale = 0  # polishing games since best_shortest last improved
         started = time.perf_counter()
         log.info(
             "training on a %d x %d maze: %d starting cells, window %d, patience %d, up to %d games",
@@ -219,6 +242,8 @@ class Trainer:
             else:
                 epsilon = max(epsilon * cfg.epsilon_decay, cfg.epsilon_min)
 
+            # The route audit runs only when the win rate says every cell might win, which is the
+            # CS 370 order: win rate first, completion check second.
             improved = False
             if win_rate >= cfg.target_win_rate:
                 report = self.audit()
@@ -243,6 +268,8 @@ class Trainer:
                     reason = StopReason.SOLVED
                     break
                 continue
+            # Early stopping. Patience counts only after the window fills, because the win rate is
+            # 0 until then, and a patience of 10 would otherwise stop every run before its first win rate.
             if full:
                 if win_rate > best:
                     best, stale = win_rate, 0
@@ -294,6 +321,7 @@ class Trainer:
 
         Returns the game's mean loss, its number of moves, and whether the pirate won.
         """
+        # Each game starts on a randomly chosen free cell, as in CS 370.
         observation = env.reset(starts[int(self.rng.integers(len(starts)))])
         losses: list[float] = []
         status = Status.PLAYING
@@ -303,6 +331,7 @@ class Trainer:
             # Only a win is terminal. Running out of reward budget is a cutoff, not a place in
             # the maze, so its target still looks one move ahead (a CS 370 design decision).
             buffer.add(Transition(observation, action, reward, next_observation, status is Status.WIN))
+            # Learn after every move from a random minibatch of stored moves (experience replay).
             losses.append(self.agent.learn(buffer.sample(self.config.batch_size)))
             observation = next_observation
         return float(np.mean(losses)), len(losses), status is Status.WIN

@@ -1,8 +1,8 @@
 """Deep Q-network agent: the network, its target copy, one learning step, and safe saving and loading.
 
 Programmer: Michael Soto
-Date: November 10, 2026
-Version: 2.1.0
+Date: November 15, 2026
+Version: 2.1.1
 Course: CS 499 Computer Science Capstone, Enhancement One (software design and engineering)
 Origin: build_model() and train_step() from the CS 370 notebook, and get_data() from the
 GameExperience.py starter file.
@@ -115,10 +115,12 @@ def build_network(input_size: int, num_actions: int = NUM_ACTIONS) -> keras.Sequ
 
 
 def sha256_bytes(data: bytes) -> str:
+    """The SHA-256 of `data` as lowercase hex, the form the run log records for every saved model."""
     return hashlib.sha256(data).hexdigest()
 
 
 def sha256_file(path: str | Path) -> str:
+    """The SHA-256 of a file on disk, read in one piece (model files are capped at MAX_MODEL_BYTES)."""
     return sha256_bytes(Path(path).read_bytes())
 
 
@@ -142,14 +144,18 @@ def _check_classes(node: Any) -> None:
 
 def inspect_model_bytes(data: bytes, expected_sha256: str, name: str = "model") -> None:
     """Every check that runs before Keras sees a model file. Raises ModelFileError on any failure."""
+    # Check 1, size: refuse an oversized file before hashing or unzipping it.
     if len(data) > MAX_MODEL_BYTES:
         raise ModelFileError(f"{name} is {len(data):,} bytes; the limit is {MAX_MODEL_BYTES:,}")
+    # Check 2, integrity: the bytes must be the ones the run log recorded when the model was saved.
+    # compare_digest takes the same time whether the hashes differ early or late.
     digest = sha256_bytes(data)
     if not hmac.compare_digest(digest, str(expected_sha256).lower()):
         raise ModelIntegrityError(
             f"{name} does not match its run log (SHA-256 {digest[:12]}..., expected "
             f"{str(expected_sha256)[:12]}...); the file may have been changed or replaced"
         )
+    # Check 3, shape of the archive: exactly the three entries Keras writes, and no zip bomb.
     try:
         with zipfile.ZipFile(io.BytesIO(data)) as archive:
             names = set(archive.namelist())
@@ -164,6 +170,7 @@ def inspect_model_bytes(data: bytes, expected_sha256: str, name: str = "model") 
         raise ModelFileError(f"{name} is not a Keras .keras archive") from None
     except json.JSONDecodeError:
         raise ModelFileError(f"{name} has an unreadable config.json") from None
+    # Check 4, contents: every class the configuration names must be on the allowlist.
     _check_classes(config)
 
 
@@ -180,10 +187,14 @@ def load_network(path: str | Path, expected_sha256: str, input_size: int | None 
         raise ModelFileError(f"{path.name} is larger than {MAX_MODEL_BYTES:,} bytes")
     data = path.read_bytes()  # read once; every check and the load use these same bytes
     inspect_model_bytes(data, expected_sha256, path.name)
+    # Keras loads a private copy of the checked bytes, so the file on disk cannot be swapped
+    # between the checks above and the load below.
     with tempfile.TemporaryDirectory() as private:
         copy = Path(private) / ("checked" + MODEL_SUFFIX)
         copy.write_bytes(data)
         network = keras.saving.load_model(copy, compile=False, safe_mode=True)
+    # A network built for another maze or another action set would load fine and then fail
+    # in the middle of training, so its shape is checked here instead.
     if network.output_shape[-1] != NUM_ACTIONS:
         raise ModelFileError(f"{path.name} returns {network.output_shape[-1]} values; expected {NUM_ACTIONS}")
     if input_size is not None and network.input_shape[-1] != input_size:
@@ -206,6 +217,8 @@ class DQNAgent:
         if network.output_shape[-1] != NUM_ACTIONS:
             raise ValueError(f"the network must return {NUM_ACTIONS} Q-values")
         self.network = network
+        # The target network starts as an exact copy and is refreshed every `target_sync_every`
+        # gradient steps, so the targets the online network chases hold still between syncs.
         self.target_network = keras.models.clone_model(network)
         self.target_network.set_weights(network.get_weights())
         self.optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
@@ -214,6 +227,7 @@ class DQNAgent:
         self.discount = float(discount)
         self.target_sync_every = int(target_sync_every)
         self.updates = 0  # gradient steps taken so far
+        # Compiled once; reduce_retracing keeps one graph for every batch size the trainer uses.
         self._predict = tf.function(self._predict_step, reduce_retracing=True)
         self._learn = tf.function(self._learn_step, reduce_retracing=True)
 
@@ -232,6 +246,7 @@ class DQNAgent:
 
     @property
     def input_size(self) -> int:
+        """The number of maze cells the network reads, which must match the maze it plays."""
         return int(self.network.input_shape[-1])
 
     def q_values(self, observation: np.ndarray) -> np.ndarray:
@@ -259,6 +274,7 @@ class DQNAgent:
 
     def learn(self, batch: Sequence[Transition]) -> float:
         """One gradient step on a minibatch; refreshes the target network on schedule. Returns the loss."""
+        # Stack the minibatch into one array per field, so a single compiled call can learn from it.
         states = np.concatenate([t.state for t in batch]).astype(np.float32, copy=False)
         next_states = np.concatenate([t.next_state for t in batch]).astype(np.float32, copy=False)
         actions = np.fromiter((t.action for t in batch), dtype=np.int32, count=len(batch))
@@ -289,6 +305,7 @@ class DQNAgent:
         return sha256_file(path)
 
     def _predict_step(self, batch: tf.Tensor) -> tf.Tensor:
+        """The online network's Q-values for a batch; compiled by tf.function in __init__."""
         return self.network(batch, training=False)
 
     def _learn_step(
@@ -299,6 +316,7 @@ class DQNAgent:
         next_states: tf.Tensor,
         dones: tf.Tensor,
     ) -> tf.Tensor:
+        """Builds the Bellman targets and takes one gradient step, all in one compiled call."""
         # The Bellman target, exactly as GameExperience.get_data() built it: the online network's
         # current Q-values, with the taken action's entry replaced by reward + discount * the
         # target network's best next Q-value (or by the reward alone when the move won).
@@ -306,6 +324,8 @@ class DQNAgent:
         q_next = self.target_network(next_states, training=False)
         bellman = rewards + (1.0 - dones) * self.discount * tf.reduce_max(q_next, axis=1)
         taken = tf.one_hot(actions, NUM_ACTIONS, dtype=q_values.dtype)
+        # Only the move that was taken gets a new target; the other three keep their own values, so
+        # their error is zero and they do not pull on the gradient.
         targets = tf.stop_gradient(q_values * (1.0 - taken) + taken * bellman[:, None])
         with tf.GradientTape() as tape:
             loss = self.loss_fn(targets, self.network(states, training=True))

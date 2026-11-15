@@ -1,8 +1,8 @@
 """Run logs: the JSON record of every training run, and the run folders that hold them.
 
 Programmer: Michael Soto
-Date: November 10, 2026
-Version: 2.0.0
+Date: November 15, 2026
+Version: 2.1.1
 Course: CS 499 Computer Science Capstone, Enhancement One (software design and engineering)
 
 Intent:
@@ -92,20 +92,24 @@ def write_run_log(path: Path, record: dict[str, Any]) -> None:
     """Writes the log atomically: a temporary file in the same folder, then a rename."""
     path = Path(path)
     text = json.dumps(record, indent=2) + "\n"
+    # Same folder as the final file, so os.replace() is a rename on one disk and cannot half-finish.
     handle, temporary = tempfile.mkstemp(dir=path.parent, prefix=".run-", suffix=".json")
     try:
         with os.fdopen(handle, "w", encoding="utf-8", newline="\n") as stream:
             stream.write(text)
         os.replace(temporary, path)
     except BaseException:
+        # Clean up the temporary file on any failure, even Ctrl+C, then let the error continue.
         Path(temporary).unlink(missing_ok=True)
         raise
 
 
 def _require(record: dict[str, Any], key: str, kind: type | tuple[type, ...], where: str = "run log") -> Any:
+    """Returns record[key] if it exists and has the expected type, else raises RunLogError."""
     if key not in record:
         raise RunLogError(f"{where} is missing '{key}'")
     value = record[key]
+    # bool is a subclass of int in Python, so True would pass as a number without the second test.
     if not isinstance(value, kind) or isinstance(value, bool) and kind is not bool:
         raise RunLogError(f"{where} field '{key}' has the wrong type")
     return value
@@ -116,6 +120,7 @@ def read_run_log(path: Path) -> dict[str, Any]:
     path = Path(path)
     if not path.is_file():
         raise RunLogError(f"no run log at {path.parent.name}/{path.name}")
+    # A run log is untrusted input like any other file: cap its size before reading it.
     if path.stat().st_size > MAX_LOG_BYTES:
         raise RunLogError(f"{path.name} is larger than {MAX_LOG_BYTES:,} bytes")
     try:
@@ -134,6 +139,7 @@ def read_run_log(path: Path) -> dict[str, Any]:
     layout = _require(maze, "layout", list, "maze record")
     if not all(isinstance(line, str) for line in layout):
         raise RunLogError("maze record field 'layout' must be a list of text rows")
+    # Only the fixed name is accepted, so an edited log cannot point the loader at another file.
     model = _require(record, "model", dict)
     if _require(model, "file", str, "model record") != MODEL_NAME:
         raise RunLogError(f"the model file must be named {MODEL_NAME}, in the run folder itself")

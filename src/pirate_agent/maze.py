@@ -1,8 +1,8 @@
 """Maze layouts, maze files, the solvable-maze generator, and the game environment.
 
 Programmer: Michael Soto
-Date: November 10, 2026
-Version: 2.0.0
+Date: November 15, 2026
+Version: 2.1.1
 Course: CS 499 Computer Science Capstone, Enhancement One (software design and engineering)
 Origin: rewrites TreasureMaze.py, a starter file SNHU supplied for CS 370 Project Two.
 
@@ -102,7 +102,13 @@ class Mode(enum.StrEnum):
 
 @dataclass(frozen=True)
 class Rewards:
-    """The reward for each kind of move, with the starter file's values as defaults."""
+    """The reward for each kind of move, with the starter file's values as defaults.
+
+    As the starter file explained, every move earns between -1 and 1. Reaching the treasure
+    pays the most. Hitting a wall or the edge of the maze costs the most, and returning to a
+    visited cell costs a smaller penalty so the pirate does not wander among free cells. Each
+    ordinary step costs a little, which favors shorter routes.
+    """
 
     win: float = 1.0
     step: float = -0.04
@@ -198,11 +204,13 @@ class Maze:
                 f"{len(stranded)} free cell(s) cannot reach the treasure, for example {examples}; "
                 "every free cell must have a path to the treasure"
             )
+        # Read-only from here on, so no later code can open a wall and undo these checks.
         grid.setflags(write=False)
         return cls(grid=grid, target=target)
 
     @property
     def shape(self) -> tuple[int, int]:
+        """(rows, columns) as plain Python integers."""
         return (int(self.grid.shape[0]), int(self.grid.shape[1]))
 
     @property
@@ -333,11 +341,13 @@ def generate_maze(
     target = (rows - 1, cols - 1)
     needed = max(2, int(np.ceil(min_free_share * rows * cols)))  # the treasure plus one start cell
     for _ in range(max_attempts):
+        # A cell is free unless its random draw falls below wall_density; the treasure is always free.
         raw = (rng.random((rows, cols)) >= wall_density).astype(np.int8)
         raw[target] = FREE
+        # The validator's own search, run outward from the treasure, finds every cell with a path to it.
         reachable = shortest_moves(raw, target)
         if len(reachable) < needed:
-            continue
+            continue  # too many walls survived; draw a new layout
         grid = np.full((rows, cols), WALL, dtype=np.int8)
         for cell in reachable:
             grid[cell] = FREE  # only cells with a path to the treasure stay open
@@ -359,6 +369,8 @@ class MazeEnv:
     def __init__(self, maze: Maze, rewards: Rewards | None = None) -> None:
         self.maze = maze
         self.rewards = rewards or Rewards()
+        # The starter file's minimum reward: a game ends as lost once its total falls below this,
+        # so a pirate that wanders cannot keep a game running forever.
         self.min_reward = self.rewards.budget_factor * maze.size
         self._background = maze.grid.astype(np.float32)  # walls 0.0, free cells 1.0
         self._starts = set(maze.free_cells)
