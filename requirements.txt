@@ -1,7 +1,7 @@
 # Runtime dependencies, pinned to the exact versions the tests and evidence runs used.
 # Programmer: Michael Soto | Date: November 10, 2026 | Version: 2.0.0
 # Intent: anyone who installs from this file gets the same TensorFlow and Keras that were tested.
-# Decision: CS 370 ran TensorFlow 2.17 and Keras 3.4 to 3.5 with Keras unpinned. pip-audit lists 16
+# Decision: CS 370 ran TensorFlow 2.17 and Keras 3.4 to 3.5 with Keras unpinned. pip-audit lists 18
 # advisories against Keras 3.5.0, including safe_mode bypasses in model loading (CVE-2025-8747,
 # CVE-2026-1462), so the pins move to TensorFlow 2.21.0 and Keras 3.15.1, which audit clean.
 numpy==2.5.4

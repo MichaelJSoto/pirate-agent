@@ -1,0 +1,16 @@
+{
+  "code": "original/Soto_Michael_ProjectTwo.ipynb, executed cell by cell",
+  "versions": {
+    "python": "3.12.10",
+    "numpy": "1.26.0",
+    "tensorflow": "2.17.0",
+    "keras": "3.5.0"
+  },
+  "seed": 1671,
+  "solved_at_epoch": 383,
+  "games": 384,
+  "moves": 27978,
+  "train_seconds": 179.9,
+  "audit": "50 of 50 free cells reach the treasure, 50 of them by a shortest route.",
+  "ms_per_move": 6.43
+}
