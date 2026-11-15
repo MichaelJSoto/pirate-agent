@@ -1,0 +1,17 @@
+# Train the pirate on a randomly generated 8 x 8 maze instead of the CS 370 maze.
+# Programmer: Michael Soto | Date: November 10, 2026 | Version: 2.0.0
+# Intent: show the agent is no longer tied to one hard-coded maze.
+# Decision: the generator and the trainer have separate seeds, so the same maze can be
+# trained with different seeds and the same seed can be tried on different mazes.
+
+[maze.generate]
+rows = 8
+cols = 8
+wall_density = 0.25
+seed = 11
+
+[training]
+seed = 1671
+
+[output]
+runs_dir = "../runs"

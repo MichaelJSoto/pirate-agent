@@ -1,0 +1,58 @@
+# Continuous integration: lint, spelling, tests and a dependency audit on every push and pull request.
+# Programmer: Michael Soto | Date: November 10, 2026 | Version: 2.0.0
+# Intent: no change reaches main unless the code is clean, the tests pass, and no pinned package
+# has a known vulnerability.
+# Decision: three separate jobs, so a failed audit or lint is visible on its own line in the pull
+# request instead of hiding inside one long log. Training is kept to the small smoke tests, which
+# finish in seconds on a CPU runner.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install lint tools
+        run: python -m pip install ruff==0.17.4 codespell==2.4.3
+      - name: Ruff lint
+        run: ruff check .
+      - name: Ruff format check
+        run: ruff format --check .
+      - name: Spelling
+        run: codespell
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - name: Install pinned dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Run the test suite
+        run: python -m pytest -q
+
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pip-audit
+        run: python -m pip install pip-audit==2.10.1
+      - name: Audit pinned runtime dependencies
+        run: pip-audit --strict -r requirements.txt

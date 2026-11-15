@@ -1,0 +1,11 @@
+# Python caches and virtual environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+# Training output: each run writes a folder here. The reference run lives in pretrained/.
+runs/
+.ipynb_checkpoints/

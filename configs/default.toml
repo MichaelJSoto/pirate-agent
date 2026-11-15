@@ -1,0 +1,29 @@
+# Train the pirate on the CS 370 maze with the CS 370 settings.
+# Programmer: Michael Soto | Date: November 10, 2026 | Version: 2.0.0
+# Intent: reproduce the CS 370 Project Two run from the command line instead of a notebook.
+# Decision: every value below equals the code default, written out so a reviewer can see and
+# change each setting without reading the source. Paths are relative to this file.
+
+[maze]
+file = "../mazes/cs370.maze"
+
+[training]
+seed = 1671                # the seed used throughout CS 370
+max_epochs = 15000         # upper bound; a run stops sooner when solved or stalled
+memory_size = 512          # 8 moves per maze cell
+batch_size = 32
+target_sync_every = 50     # gradient steps between target network refreshes
+learning_rate = 0.001
+discount = 0.95
+epsilon_start = 1.0
+epsilon_min = 0.05
+epsilon_decay = 0.995
+settle_win_rate = 0.9      # above this win rate, exploration drops to epsilon_settled
+epsilon_settled = 0.05
+target_win_rate = 1.0      # stop when every game in the window is won and the audit passes
+win_window = 32            # half the maze cells
+patience = 300             # stop a stalled run after this many games without a better win rate
+log_every = 25
+
+[output]
+runs_dir = "../runs"

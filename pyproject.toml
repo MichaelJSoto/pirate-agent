@@ -1,0 +1,47 @@
+# Package metadata, the command-line entry point, and the settings for pytest, Ruff and codespell.
+# Programmer: Michael Soto | Date: November 10, 2026 | Version: 2.0.0
+# Intent: one file that tells another developer how the project is built, run, linted and tested.
+# Decision: exact dependency versions live in requirements.txt, which CI audits, so this file only
+# names the packages; that keeps one reviewed source of truth for what is installed.
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pirate-agent"
+version = "2.0.0"
+description = "A deep Q-learning pirate that learns to reach the treasure in a validated maze."
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [{ name = "Michael Soto" }]
+dependencies = ["numpy", "tensorflow", "keras"]
+
+[project.scripts]
+pirate-agent = "pirate_agent.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra"
+markers = ["tf: needs TensorFlow (agent, trainer and command-line tests)"]
+filterwarnings = ["ignore::DeprecationWarning:tensorflow.*", "ignore::DeprecationWarning:keras.*"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+extend-exclude = ["original"]
+
+[tool.ruff.lint]
+# pycodestyle, Pyflakes, import order, bugbear, pyupgrade, naming, simplify, and the Bandit
+# security rules (S), so risky calls such as pickle or eval are flagged on every push.
+select = ["E", "W", "F", "I", "B", "UP", "N", "SIM", "S"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]  # pytest uses plain assert statements
+
+[tool.codespell]
+skip = "./original,*.ipynb,*.keras,./runs,./.git"
