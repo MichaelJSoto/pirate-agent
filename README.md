@@ -14,9 +14,9 @@ change below can be compared with the code that was graded.
 | Settings | globals and magic numbers | one TOML file, every key type- and range-checked |
 | Early stopping | `patience = 10` declared, never read | stops a stalled run after `patience` games |
 | Trained model | never saved | `.keras` file, SHA-256 checked before every load |
-| Tests | none | 132 automated tests, run by CI on every push |
+| Tests | none | 138 automated tests, run by CI on every push |
 | Dependencies | Keras unpinned (ran 3.4 to 3.5) | pinned; 19 known advisories down to 0 |
-| Reference run (seed 1671) | 384 games, 179.9 s (6.43 ms per move) | 286 games, 22.4 s (1.13 ms per move), same laptop |
+| Reference run (seed 1671) | 384 games, 179.9 s (6.43 ms per move) | 296 games, 18.0 s (0.9 ms per move), same laptop, every route shortest |
 
 ## Quick start
 
@@ -25,7 +25,7 @@ python -m venv .venv
 .venv\Scripts\activate                 # Windows; on macOS or Linux: source .venv/bin/activate
 python -m pip install -r requirements-dev.txt
 python -m pip install -e . --no-deps   # makes pirate_agent importable from anywhere
-python -m pytest                       # 132 tests, about ten seconds
+python -m pytest                       # 138 tests, about ten seconds
 ```
 
 Then train, check and watch an agent:
@@ -41,7 +41,7 @@ The install also adds a `pirate-agent` command, so `pirate-agent evaluate --run 
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/training-curve-dark.png">
-  <img alt="Line chart of the win rate over the last 32 games for seed 1671, rising to 100 percent; the run is solved after 286 games." src="docs/images/training-curve-light.png" width="560">
+  <img alt="Line chart of the win rate over the last 32 games for seed 1671, rising to 100 percent; every cell wins at game 286 and the routes are polished by game 296." src="docs/images/training-curve-light.png" width="560">
 </picture>
 
 ## Commands
@@ -90,6 +90,8 @@ runs_dir = "../runs"
 | `target_win_rate` | 1.0 | Win rate that triggers the completion check from every free cell |
 | `win_window` | half the cells | Games in the win-rate window |
 | `patience` | 300 | Games without a better win rate before a run stops as stalled |
+| `target_shortest_share` | 1.0 | After every cell wins, keep polishing until this share of cells takes a shortest route (0.0 stops at the first all-cell win, as in 2.0) |
+| `polish_patience` | 200 | Polishing games without a new shortest route before the run keeps its best version and stops |
 | `log_every` | 25 | Games between progress lines |
 
 ## Maze files
@@ -143,6 +145,15 @@ Decisions worth knowing before you change the code:
   through `Maze.from_grid()`, so the environment never handles a bad layout mid-training.
 - **The trainer depends on a two-method protocol** (`greedy_action`, `learn`), not on TensorFlow, so
   its stopping rules are tested exactly with stand-in agents in milliseconds.
+- **Winning is not the finish line; shortest routes are.** CS 370 stopped at the first full window
+  of wins, and in 2.0 that left between 33 and 50 of the 50 routes as short as possible, depending
+  on the seed. Since 2.1, training keeps polishing after every cell wins, audits after every
+  game, snapshots the version with the most shortest routes, and restores it at the end, so
+  polishing can never make the result worse.
+- **A greedy policy is a table.** An observation encodes only the walls and the pirate's cell, so
+  the trained pirate always makes the same move from the same cell. `audit.cell_policy()` asks the
+  network for every cell's move in one batched call, which makes a full audit cheap enough to run
+  after every training game. A test checks it against the step-by-step audit.
 - **Only a win is terminal.** Running out of reward budget is a cutoff, not a place in the maze, so
   that move's target still looks one step ahead (a CS 370 decision, kept).
 - **The deque replay memory** drops the oldest move in O(1); the starter list's `del memory[0]` was
@@ -161,7 +172,7 @@ Decisions worth knowing before you change the code:
 
 ## Tests and CI
 
-`python -m pytest` runs 132 tests: the game rules (including regression tests for the two SNHU
+`python -m pytest` runs 138 tests: the game rules (including regression tests for the two SNHU
 starter bugs), every maze and configuration refusal, the replay memory, the route audit, the
 stopping rules, the network and its learning step, the model-file attacks (a `Lambda` layer, a
 renamed `.h5`, a smuggled archive entry, a changed byte), and a full train, evaluate and play cycle
@@ -178,31 +189,31 @@ All numbers come from [`scripts/evidence.py`](scripts/evidence.py) and
 
 Training speed, all on one laptop CPU with the CS 370 seed (1671) and maze:
 
-| Code | TensorFlow / Keras | Games | Seconds | ms per move | Cells won | Shortest routes |
+| Code | TensorFlow / Keras | Every cell wins at game | Games in total | Seconds | ms per move | Shortest routes |
 |---|---|---|---|---|---|---|
-| CS 370 notebook | 2.17.0 / 3.5.0 | 384 | 179.9 | 6.43 | 50 of 50 | 50 |
-| this package | 2.21.0 / 3.15.1 | 286 | 22.4 | 1.13 | 50 of 50 | 47 |
-| this package | 2.17.0 / 3.5.0 | 359 | 35.2 | 1.16 | 50 of 50 | 49 |
+| CS 370 notebook | 2.17.0 / 3.5.0 | 384 | 384 | 179.9 | 6.43 | 50 of 50 |
+| this package | 2.21.0 / 3.15.1 | 286 | 296 | 18.0 | 0.9 | 47, polished to 50 of 50 |
+| this package | 2.17.0 / 3.5.0 | 359 | 366 | 26.9 | 0.88 | 49, polished to 50 of 50 |
 
 The last row runs the new code on the old libraries, so the drop from 6.43 to about
-1.16 ms per move comes from the code (one compiled learning step instead of three calls
-per move), not from the upgrade. Game counts repeat exactly for a seed and library version;
-seconds vary by a second or two between runs.
+0.88 ms per move comes from the code, not from the upgrade. Game counts repeat exactly for
+a seed and library version; seconds vary by a second or two between runs.
 
-- **Ten seeds:** 10 of 10 runs solved the maze and won from all 50 cells, with a
-  median of 282 games (range 247 to 393) and 23.2 s per run. The
-  stopping rule asks only for wins, so shortest routes range from 33 to 50 of 50.
+- **Ten seeds:** all 10 runs won from all 50 cells (median 282 games to get
+  there). Before polishing, shortest routes ranged from 33 to 50 of 50; after it,
+  9 of 10 runs took a shortest route from every cell and the lowest was 49.
+  Runs took 267 to 505 games and 18.9 s on average.
 - **Early stopping:** a run given a learning rate of 1e-09, which cannot learn, stopped as
-  stalled after 374 games (30.7 s) instead of playing up to 15,000.
-- **A generated maze** with 42 open cells was solved after 175 games in 8.2 s, winning from all
-  41 starting cells.
+  stalled after 374 games (26.3 s) instead of playing up to 15,000.
+- **A generated maze** with 42 open cells: every cell won after 175 games, and
+  41 of 41 routes were shortest after polishing (226 games, 6.4 s).
 - **Dependencies:** 19 advisories against the CS 370 pins, 0 against these.
 
 Every table, per-seed row and advisory ID is in [`docs/evidence/SUMMARY.md`](docs/evidence/SUMMARY.md).
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/policy-dark.png">
-  <img alt="The 8 by 8 maze with an arrow in every free cell showing the trained pirate's move; cells where a shorter route exists are outlined." src="docs/images/policy-light.png" width="380">
+  <img alt="The 8 by 8 maze with an arrow in every free cell showing the trained pirate's move; after polishing, every route is a shortest route." src="docs/images/policy-light.png" width="380">
 </picture>
 
 ## Project layout

@@ -2,7 +2,7 @@
 
 Programmer: Michael Soto
 Date: November 10, 2026
-Version: 2.0.0
+Version: 2.1.0
 Course: CS 499 Computer Science Capstone, Enhancement One (software design and engineering)
 
 Intent:
@@ -137,6 +137,11 @@ def cmd_train(args: argparse.Namespace) -> int:
         f"Stopped: {result.stop_reason} after {result.epochs:,} games and {result.moves:,} moves "
         f"in {result.seconds:.1f} s ({result.explored_share:.1%} of moves explored)"
     )
+    if result.solved_at is not None:
+        print(
+            f"Every cell won after {result.solved_at:,} games; polishing took the shortest routes from "
+            f"{result.first_shortest_routes} to {result.shortest_routes} of {report.cells}"
+        )
     print(report.summary())
     print()
     print(route_grid(report, maze))

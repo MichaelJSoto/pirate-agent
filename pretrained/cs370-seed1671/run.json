@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "run_id": "20261110-153909-seed1671",
+  "run_id": "20261110-203023-seed1671",
   "config_file": "default.toml",
   "versions": {
     "python": "3.12.10",
-    "pirate_agent": "2.0.0",
+    "pirate_agent": "2.1.0",
     "numpy": "2.5.4",
     "tensorflow": "2.21.0",
     "keras": "3.15.1"
@@ -44,26 +44,32 @@
     "target_win_rate": 1.0,
     "win_window": 32,
     "patience": 300,
+    "target_shortest_share": 1.0,
+    "polish_patience": 200,
     "log_every": 25
   },
   "result": {
     "stop_reason": "solved",
-    "epochs": 286,
-    "moves": 19843,
-    "explored_moves": 11829,
-    "explored_share": 0.5961,
-    "seconds": 20.6,
+    "epochs": 296,
+    "moves": 20026,
+    "explored_moves": 11834,
+    "explored_share": 0.5909,
+    "seconds": 17.02,
     "win_rate": 1.0,
-    "best_win_rate": 1.0
+    "best_win_rate": 1.0,
+    "solved_at": 286,
+    "first_shortest_routes": 47,
+    "shortest_routes": 50,
+    "routes_complete": true
   },
   "audit": {
     "cells": 50,
     "wins": 50,
-    "shortest_routes": 47
+    "shortest_routes": 50
   },
   "model": {
     "file": "model.keras",
-    "sha256": "a3937456255628fe2e6aad87ebb355cd97c0d6f7a6c4f159a05a50c9d3830f17",
+    "sha256": "823d61d53d924de42bc571f1f4273b49adc736d4f072fb163c7573d2b5ee76bc",
     "bytes": 59267,
     "parameters": 8708
   }

@@ -2,7 +2,7 @@
 
 Programmer: Michael Soto
 Date: November 10, 2026
-Version: 2.0.0
+Version: 2.1.0
 Course: CS 499 Computer Science Capstone, Enhancement One (software design and engineering)
 
 Intent:
@@ -37,6 +37,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from pirate_agent import __version__  # noqa: E402
 from pirate_agent.audit import audit_policy  # noqa: E402
 from pirate_agent.config import load_config  # noqa: E402
 from pirate_agent.maze import generate_maze, load_maze  # noqa: E402
@@ -67,6 +68,8 @@ def row(seed, result, report):
         "moves": result.moves,
         "seconds": round(result.seconds, 1),
         "explored_share": round(result.explored_share, 3),
+        "solved_at": result.solved_at,
+        "first_shortest_routes": result.first_shortest_routes,
         "wins": report.wins,
         "cells": report.cells,
         "shortest_routes": report.optimal,
@@ -92,6 +95,10 @@ def seed_sweep():
         "games_min": min(games),
         "games_max": max(games),
         "seconds_mean": round(statistics.mean(r["seconds"] for r in rows), 1),
+        "solved_at_median": statistics.median(r["solved_at"] for r in rows),
+        "first_shortest_min": min(r["first_shortest_routes"] for r in rows),
+        "first_shortest_max": max(r["first_shortest_routes"] for r in rows),
+        "all_routes_shortest": sum(r["shortest_routes"] == r["cells"] for r in rows),
         "shortest_routes_min": min(r["shortest_routes"] for r in rows),
         "shortest_routes_max": max(r["shortest_routes"] for r in rows),
     }
@@ -152,7 +159,7 @@ def summary():
     )
     for r in references:
         lines.append(
-            f"| pirate_agent 2.0.0 | {r['versions']['tensorflow']} / {r['versions']['keras']} | "
+            f"| pirate_agent {__version__} | {r['versions']['tensorflow']} / {r['versions']['keras']} | "
             f"{r['games']} | {r['moves']:,} | {r['seconds']} | {r['ms_per_move']} | "
             f"{r['wins']} of {r['cells']} | {r['shortest_routes']} |"
         )
@@ -160,13 +167,15 @@ def summary():
         "",
         "## Ten seeds on the CS 370 maze",
         "",
-        "| Seed | Stop | Games | Moves | Seconds | Cells won | Shortest routes |",
-        "|---|---|---|---|---|---|---|",
+        "| Seed | Stop | All cells won at game | Games | Moves | Seconds | Cells won | Shortest routes "
+        "(first all-win, kept) |",
+        "|---|---|---|---|---|---|---|---|",
     ]
     for r in sweep["runs"]:
         lines.append(
-            f"| {r['seed']} | {r['stop_reason']} | {r['games']} | {r['moves']:,} | {r['seconds']} | "
-            f"{r['wins']} of {r['cells']} | {r['shortest_routes']} |"
+            f"| {r['seed']} | {r['stop_reason']} | {r['solved_at']} | {r['games']} | {r['moves']:,} | "
+            f"{r['seconds']} | {r['wins']} of {r['cells']} | "
+            f"{r['first_shortest_routes']}, {r['shortest_routes']} |"
         )
     lines += [
         "",

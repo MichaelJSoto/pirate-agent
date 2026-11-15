@@ -7,29 +7,29 @@ Regenerate with `python scripts/evidence.py` and `scripts/time_original.py`.
 | Code | TensorFlow / Keras | Games | Moves | Seconds | ms per move | Cells won | Shortest routes |
 |---|---|---|---|---|---|---|---|
 | CS 370 notebook | 2.17.0 / 3.5.0 | 384 | 27,978 | 179.9 | 6.43 | 50 of 50 | 50 |
-| pirate_agent 2.0.0 | 2.21.0 / 3.15.1 | 286 | 19,843 | 22.4 | 1.13 | 50 of 50 | 47 |
-| pirate_agent 2.0.0 | 2.17.0 / 3.5.0 | 359 | 30,259 | 35.2 | 1.16 | 50 of 50 | 49 |
+| pirate_agent 2.1.0 | 2.21.0 / 3.15.1 | 296 | 20,026 | 18.0 | 0.9 | 50 of 50 | 50 |
+| pirate_agent 2.1.0 | 2.17.0 / 3.5.0 | 366 | 30,380 | 26.9 | 0.88 | 50 of 50 | 50 |
 
 ## Ten seeds on the CS 370 maze
 
-| Seed | Stop | Games | Moves | Seconds | Cells won | Shortest routes |
-|---|---|---|---|---|---|---|
-| 1671 | solved | 286 | 19,843 | 21.0 | 50 of 50 | 47 |
-| 1 | solved | 282 | 20,896 | 20.6 | 50 of 50 | 44 |
-| 2 | solved | 393 | 30,638 | 31.5 | 50 of 50 | 44 |
-| 3 | solved | 247 | 18,148 | 19.2 | 50 of 50 | 33 |
-| 4 | solved | 282 | 22,282 | 23.2 | 50 of 50 | 50 |
-| 5 | solved | 273 | 20,827 | 19.9 | 50 of 50 | 49 |
-| 6 | solved | 267 | 22,371 | 22.7 | 50 of 50 | 50 |
-| 7 | solved | 323 | 21,396 | 28.6 | 50 of 50 | 50 |
-| 8 | solved | 273 | 23,450 | 21.5 | 50 of 50 | 44 |
-| 9 | solved | 317 | 20,418 | 23.8 | 50 of 50 | 49 |
+| Seed | Stop | All cells won at game | Games | Moves | Seconds | Cells won | Shortest routes (first all-win, kept) |
+|---|---|---|---|---|---|---|---|
+| 1671 | solved | 286 | 296 | 20,026 | 16.3 | 50 of 50 | 47, 50 |
+| 1 | solved | 282 | 417 | 23,327 | 18.6 | 50 of 50 | 44, 50 |
+| 2 | solved | 393 | 444 | 31,680 | 28.4 | 50 of 50 | 44, 50 |
+| 3 | solved | 247 | 278 | 18,836 | 15.6 | 50 of 50 | 33, 50 |
+| 4 | solved | 282 | 282 | 22,282 | 17.8 | 50 of 50 | 50, 50 |
+| 5 | solved | 273 | 279 | 20,939 | 16.1 | 50 of 50 | 49, 50 |
+| 6 | solved | 267 | 267 | 22,371 | 17.8 | 50 of 50 | 50, 50 |
+| 7 | solved | 323 | 323 | 21,396 | 17.9 | 50 of 50 | 50, 50 |
+| 8 | solved | 273 | 505 | 27,587 | 23.9 | 50 of 50 | 44, 49 |
+| 9 | solved | 317 | 320 | 20,460 | 16.8 | 50 of 50 | 49, 50 |
 
-Solved 10 of 10; every cell won in 10; median 282 games (range 247 to 393); mean 23.2 s per run.
+Solved 10 of 10; every cell won in 10; median 308 games (range 267 to 505); mean 18.9 s per run.
 
 ## Early stopping on a run that cannot learn
 
-Learning rate 1e-09, patience 300: stopped as stalled after 374 games (30.7 s) instead of up to 15,000; best win rate 0.344.
+Learning rate 1e-09, patience 300: stopped as stalled after 374 games (26.3 s) instead of up to 15,000; best win rate 0.344.
 
 ## A generated maze
 
@@ -44,7 +44,7 @@ Learning rate 1e-09, patience 300: stopped as stalled after 374 games (30.7 s) i
 ..###..T
 ```
 
-42 open cells, seed 11: solved after 175 games in 8.2 s; 41 of 41 cells won, 39 by a shortest route.
+42 open cells, seed 11: solved after 226 games in 6.4 s; 41 of 41 cells won, 41 by a shortest route.
 
 ## Replay memory: nanoseconds per insert into a full memory
 

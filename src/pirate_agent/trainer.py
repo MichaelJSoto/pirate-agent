@@ -1,15 +1,16 @@
-"""Training loop: epsilon-greedy games, replay learning, early stopping and progress logging.
+"""Training loop: epsilon-greedy games, replay learning, early stopping, route polishing and logging.
 
 Programmer: Michael Soto
 Date: November 10, 2026
-Version: 2.0.0
+Version: 2.1.0
 Course: CS 499 Computer Science Capstone, Enhancement One (software design and engineering)
 Origin: qtrain(), Explorer, ReplayLearner, TargetSync and play_training_game() from the CS 370
 notebook.
 
 Intent:
-    Train an agent until it wins from every free cell, and when it cannot, stop early and say
-    why instead of spending the whole epoch budget.
+    Train an agent until it wins from every free cell by a shortest route, and when it cannot,
+    stop early, keep the best version it found, and say why instead of spending the whole
+    epoch budget.
 
 Decision:
     qtrain() changed a global epsilon, so a second run silently began where the first one
@@ -17,17 +18,27 @@ Decision:
     resets from the configuration. The declared but never-read `patience` (S7) is now real
     early stopping: once the win-rate window is full, a run that goes `patience` games without
     beating its best win rate stops as "stalled". Games played while the win rate already sits
-    at the target do not count as stalled, because those games are waiting on the completion
-    check, not failing to learn. The success test is unchanged from CS 370: a full window of
-    wins and a passing completion check from every free cell. Progress goes to `logging`
-    instead of print (S6). The trainer depends only on the Learner protocol below, so its
-    stopping rules can be tested with a stand-in agent and no TensorFlow.
+    at the target do not count as stalled, because those games are waiting on the route check,
+    not failing to learn. Progress goes to `logging` instead of print (S6).
+
+    Version 2.1 adds a polish stage. CS 370 stopped at the first full window of wins with a
+    passing completion check, which says nothing about route length, and the 2.0 evidence
+    showed the share of shortest routes swinging from 33 to 50 of 50 between seeds. Now, once
+    every cell wins, training continues, the route audit runs after every game, and the agent
+    is snapshotted whenever it reaches more cells by a shortest route. The run ends when
+    `target_shortest_share` of the cells take a shortest route, or after `polish_patience`
+    games without improvement, and in that case the best snapshot is restored, so polishing can
+    never leave the agent worse than when it first solved the maze. The audit runs as one
+    batched prediction for all cells (see audit.cell_policy), which keeps a check per game
+    cheap. The trainer depends only on the Learner protocol below, so every stopping rule can
+    be tested with a stand-in agent and no TensorFlow.
 """
 
 from __future__ import annotations
 
 import enum
 import logging
+import math
 import time
 from collections import deque
 from collections.abc import Sequence
@@ -36,7 +47,7 @@ from typing import Any, Protocol
 
 import numpy as np
 
-from .audit import completion_check
+from .audit import AuditReport, audit_policy, cell_policy
 from .config import TrainingConfig
 from .maze import Cell, Maze, MazeEnv, Rewards, Status
 from .replay import ReplayBuffer, Transition
@@ -45,17 +56,23 @@ log = logging.getLogger(__name__)
 
 
 class Learner(Protocol):
-    """What the trainer needs from an agent: a greedy move and one learning step."""
+    """What the trainer needs from an agent: greedy moves, a learning step, and snapshots."""
 
     def greedy_action(self, observation: np.ndarray) -> int: ...
 
+    def greedy_actions(self, observations: np.ndarray) -> np.ndarray: ...
+
     def learn(self, batch: Sequence[Transition]) -> float: ...
+
+    def snapshot(self) -> Any: ...
+
+    def restore(self, snapshot: Any) -> None: ...
 
 
 class StopReason(enum.StrEnum):
-    SOLVED = "solved"  # a full window of wins and a passing completion check
-    STALLED = "stalled"  # `patience` games without a better win rate
-    BUDGET = "max_epochs"  # the epoch budget ran out first
+    SOLVED = "solved"  # every cell wins; see routes_complete for whether every route is shortest
+    STALLED = "stalled"  # `patience` games without a better win rate, before any cell set fully won
+    BUDGET = "max_epochs"  # the epoch budget ran out before every cell won
 
 
 @dataclass(frozen=True)
@@ -82,6 +99,10 @@ class TrainingResult:
     win_rate: float
     best_win_rate: float
     history: tuple[EpochRecord, ...]
+    solved_at: int | None = None  # games played when every cell first won
+    shortest_routes: int | None = None  # cells reached by a shortest route in the kept version
+    first_shortest_routes: int | None = None  # the same count when every cell first won
+    routes_complete: bool = False  # True when the kept version met target_shortest_share
 
     @property
     def explored_share(self) -> float:
@@ -98,6 +119,10 @@ class TrainingResult:
             "seconds": round(self.seconds, 2),
             "win_rate": self.win_rate,
             "best_win_rate": self.best_win_rate,
+            "solved_at": self.solved_at,
+            "first_shortest_routes": self.first_shortest_routes,
+            "shortest_routes": self.shortest_routes,
+            "routes_complete": self.routes_complete,
         }
 
 
@@ -136,6 +161,10 @@ class Trainer:
         self.rewards = rewards or Rewards()
         self.rng = rng if rng is not None else np.random.default_rng(config.seed)
 
+    def audit(self) -> AuditReport:
+        """The route audit of the agent's current greedy policy, from one batched prediction."""
+        return audit_policy(self.maze, cell_policy(self.maze, self.agent.greedy_actions), self.rewards)
+
     def train(self) -> TrainingResult:
         cfg = self.config
         env = MazeEnv(self.maze, self.rewards)
@@ -143,6 +172,7 @@ class Trainer:
         window = cfg.window_for(self.maze.size)
         explorer = Explorer(self.rng)
         starts = self.maze.free_cells
+        needed = math.ceil(cfg.target_shortest_share * len(starts))  # cells that must take a shortest route
         epsilon = cfg.epsilon_start  # every run starts from the configured value
         recent: deque[bool] = deque(maxlen=window)
         best = 0.0
@@ -151,6 +181,11 @@ class Trainer:
         win_rate = 0.0
         history: list[EpochRecord] = []
         reason = StopReason.BUDGET
+        solved_at: int | None = None
+        first_shortest: int | None = None
+        best_shortest = -1
+        best_snapshot: Any = None
+        polish_stale = 0
         started = time.perf_counter()
         log.info(
             "training on a %d x %d maze: %d starting cells, window %d, patience %d, up to %d games",
@@ -183,29 +218,54 @@ class Trainer:
                 epsilon = cfg.epsilon_settled
             else:
                 epsilon = max(epsilon * cfg.epsilon_decay, cfg.epsilon_min)
-            if win_rate >= cfg.target_win_rate and completion_check(
-                self.maze, self.agent.greedy_action, self.rewards
-            ):
-                reason = StopReason.SOLVED
-                break
+
+            improved = False
+            if win_rate >= cfg.target_win_rate:
+                report = self.audit()
+                if report.all_win:
+                    if solved_at is None:
+                        solved_at, first_shortest = epoch + 1, report.optimal
+                        log.info(
+                            "every cell wins after %d games (%d of %d by a shortest route); polishing routes",
+                            solved_at,
+                            report.optimal,
+                            report.cells,
+                        )
+                    if report.optimal > best_shortest:
+                        best_shortest, best_snapshot, improved = report.optimal, self.agent.snapshot(), True
+                    if report.optimal >= needed:
+                        reason = StopReason.SOLVED
+                        break
+            if solved_at is not None:
+                # Polishing: count games that add no shortest route; the stall rule no longer applies.
+                polish_stale = 0 if improved else polish_stale + 1
+                if polish_stale >= cfg.polish_patience:
+                    reason = StopReason.SOLVED
+                    break
+                continue
             if full:
                 if win_rate > best:
                     best, stale = win_rate, 0
                 elif win_rate >= cfg.target_win_rate:
-                    stale = 0  # at the target and waiting on the completion check: not a stall
+                    stale = 0  # at the target and waiting on the route check: not a stall
                 else:
                     stale += 1
                 if stale >= cfg.patience:
                     reason = StopReason.STALLED
                     break
+        if best_snapshot is not None:
+            self.agent.restore(best_snapshot)  # never end worse than the best version seen
+            reason = StopReason.SOLVED
         seconds = time.perf_counter() - started
+        complete = best_shortest >= needed if best_snapshot is not None else False
         log.info(
-            "stopped (%s) after %d games and %d moves in %.1f s; best win rate %.3f",
+            "stopped (%s) after %d games and %d moves in %.1f s; best win rate %.3f; shortest routes %s",
             reason,
             len(history),
             moves,
             seconds,
-            best,
+            max(best, win_rate),
+            f"{best_shortest} of {len(starts)}" if best_snapshot is not None else "not audited",
         )
         return TrainingResult(
             stop_reason=reason,
@@ -214,8 +274,12 @@ class Trainer:
             explored_moves=explorer.explored,
             seconds=seconds,
             win_rate=win_rate,
-            best_win_rate=best,
+            best_win_rate=max(best, win_rate),
             history=tuple(history),
+            solved_at=solved_at,
+            shortest_routes=best_shortest if best_snapshot is not None else None,
+            first_shortest_routes=first_shortest,
+            routes_complete=complete,
         )
 
     def _play_game(

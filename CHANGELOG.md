@@ -2,6 +2,22 @@
 
 All notable changes to this project. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [2.1.0] - 2026-11-10
+
+### Added
+- A route polish stage. Once every cell wins, training continues and audits the routes after
+  every game, keeps a snapshot of the version with the most shortest routes, and stops when
+  `target_shortest_share` of the cells take a shortest route or after `polish_patience` games
+  without improvement, restoring the best snapshot. The 2.0.0 evidence showed shortest routes
+  ranging from 33 to 50 of 50 between seeds, because the CS 370 stopping rule asked only for wins.
+- `audit.cell_policy()`: one batched prediction for every cell replaces a prediction per move
+  during an audit, because an observation encodes only the pirate's cell.
+- `DQNAgent.greedy_actions()`, `snapshot()` and `restore()`.
+- Run logs record when every cell first won and the shortest-route count before and after polishing.
+
+### Changed
+- `target_shortest_share = 0.0` reproduces the 2.0.0 stopping rule.
+
 ## [2.0.0] - 2026-11-10
 
 The CS 370 notebook rebuilt as a tested, configurable and secured Python package for CS 499.

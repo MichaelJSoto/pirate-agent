@@ -2,7 +2,7 @@
 
 Programmer: Michael Soto
 Date: November 10, 2026
-Version: 2.0.0
+Version: 2.1.0
 Course: CS 499 Computer Science Capstone, Enhancement One (software design and engineering)
 
 Intent:
@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from pirate_agent.audit import audit_policy, completion_check, play_greedy, route_grid, route_map
+from pirate_agent.audit import audit_policy, cell_policy, completion_check, play_greedy, route_grid, route_map
 from pirate_agent.maze import MOVES, PIRATE_MARK, Action, MazeEnv, shortest_moves
 
 
@@ -98,3 +98,17 @@ def test_route_map_marks_start_path_and_treasure(corridor):
     route, won = play_greedy(env, bfs_policy(corridor), (1, 0))
     assert won
     assert route_map(corridor, route) == "o o o\nS # T"
+
+
+def test_cell_policy_matches_the_step_by_step_policy(cs370_maze):
+    policy = bfs_policy(cs370_maze)
+    calls = []
+
+    def batch(observations):
+        calls.append(len(observations))
+        return np.array([policy(row.reshape(1, -1)) for row in observations])
+
+    fast = audit_policy(cs370_maze, cell_policy(cs370_maze, batch))
+    slow = audit_policy(cs370_maze, policy)
+    assert fast == slow
+    assert calls == [50]  # one batched call covers every starting cell

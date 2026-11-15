@@ -2,7 +2,7 @@
 
 Programmer: Michael Soto
 Date: November 10, 2026
-Version: 2.0.0
+Version: 2.1.0
 Course: CS 499 Computer Science Capstone, Enhancement One (software design and engineering)
 
 Intent:
@@ -53,6 +53,8 @@ class TrainingConfig:
     target_win_rate: float = 1.0  # CS 370 tested win_rate >= 0.999, which means 100%
     win_window: int | None = None  # None: half the maze cells, as in CS 370
     patience: int = 300  # new in 2.0: games without a better win rate before a stalled run stops
+    target_shortest_share: float = 1.0  # new in 2.1: share of cells that must take a shortest route
+    polish_patience: int = 200  # new in 2.1: polishing games without a new shortest route before stopping
     log_every: int = 25  # games between progress lines in the log
 
     def memory_for(self, cells: int) -> int:
@@ -105,6 +107,8 @@ _TRAINING_RULES: dict[str, tuple[str, float, float]] = {
     "target_win_rate": (_FLOAT, 0.0, 1.0),
     "win_window": (_INT, 1, 100_000),
     "patience": (_INT, 1, 1_000_000),
+    "target_shortest_share": (_FLOAT, 0.0, 1.0),
+    "polish_patience": (_INT, 1, 1_000_000),
     "log_every": (_INT, 1, 1_000_000),
 }
 _GENERATE_RULES: dict[str, tuple[str, float, float]] = {

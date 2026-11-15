@@ -1,5 +1,5 @@
 # Package metadata, the command-line entry point, and the settings for pytest, Ruff and codespell.
-# Programmer: Michael Soto | Date: November 10, 2026 | Version: 2.0.0
+# Programmer: Michael Soto | Date: November 10, 2026 | Version: 2.1.0
 # Intent: one file that tells another developer how the project is built, run, linted and tested.
 # Decision: exact dependency versions live in requirements.txt, which CI audits, so this file only
 # names the packages; that keeps one reviewed source of truth for what is installed.
@@ -10,7 +10,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pirate-agent"
-version = "2.0.0"
+version = "2.1.0"
 description = "A deep Q-learning pirate that learns to reach the treasure in a validated maze."
 readme = "README.md"
 requires-python = ">=3.12"

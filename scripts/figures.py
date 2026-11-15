@@ -2,7 +2,7 @@
 
 Programmer: Michael Soto
 Date: November 10, 2026
-Version: 2.0.0
+Version: 2.1.0
 Course: CS 499 Computer Science Capstone, Enhancement One (software design and engineering)
 
 Intent:
@@ -81,15 +81,13 @@ def training_curve(theme: dict[str, str], record: dict) -> plt.Figure:
         f"Win rate over the last {window} games, seed {seed}", loc="left", color=theme["ink"], fontsize=11
     )
     last = games[-1]
-    leader = {"arrowstyle": "-", "color": theme["muted"], "linewidth": 0.8}
-    ax.annotate(
-        f"solved after {last} games",
-        xy=(last, rate[-1]),
-        xytext=(last - 120, 84),
-        color=theme["ink"],
-        fontsize=9,
-        arrowprops=leader,
-    )
+    solved = record["result"].get("solved_at") or last
+    label = f"Every cell wins at game {solved}."
+    if last > solved:
+        label += f"\nShaded: polishing routes until game {last}."
+        ax.axvspan(solved, last, color=theme["grid"], linewidth=0)  # the polish stage
+    # The top-left corner stays empty: the win rate has no value until the window fills.
+    ax.text(window, 92, label, color=theme["ink"], fontsize=9, va="top")
     ax.text(window, 4, f"no rate until the first {window} games are played", color=theme["muted"], fontsize=8)
     return fig
 
