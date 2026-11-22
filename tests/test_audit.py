@@ -1,8 +1,8 @@
 """Tests for the breadth-first search and the route audit.
 
 Programmer: Michael Soto
-Date: November 10, 2026
-Version: 2.1.0
+Date: November 22, 2026
+Version: 2.1.2
 Course: CS 499 Computer Science Capstone, Enhancement One (software design and engineering)
 
 Intent:
@@ -28,6 +28,10 @@ def bfs_policy(maze):
     cols = maze.shape[1]
 
     def policy(observation):
+        """Finds the pirate from PIRATE_MARK and returns the first move to a cell one step nearer.
+
+        O(1) per move after the one search above: at most four lookups in `distance`.
+        """
         index = int(np.argmax(observation[0] == PIRATE_MARK))
         row, col = divmod(index, cols)
         for action, (d_row, d_col) in MOVES.items():
@@ -40,10 +44,12 @@ def bfs_policy(maze):
 
 
 def always(action):
+    """A policy that ignores the observation and plays `action` from every cell."""
     return lambda observation: int(action)
 
 
 def test_distances_on_a_small_maze(corridor):
+    """Fewest moves from each free cell to the treasure, checked by hand; the wall gets no entry."""
     assert shortest_moves(corridor.grid, corridor.target) == {
         (1, 2): 0,
         (0, 2): 1,
@@ -54,6 +60,11 @@ def test_distances_on_a_small_maze(corridor):
 
 
 def test_perfect_policy_scores_perfectly(cs370_maze):
+    """A policy that follows the search wins all 50 CS 370 cells by a shortest route, longest 28 moves.
+
+    The audit must give this known-perfect policy a perfect score before its verdict on a
+    trained network means anything.
+    """
     report = audit_policy(cs370_maze, bfs_policy(cs370_maze))
     assert (report.cells, report.wins, report.optimal) == (50, 50, 50)
     assert report.all_win
@@ -62,6 +73,7 @@ def test_perfect_policy_scores_perfectly(cs370_maze):
 
 
 def test_bad_policy_is_caught(corridor):
+    """A policy that only moves left never wins; the audit, the completion check and the grid all say so."""
     report = audit_policy(corridor, always(Action.LEFT))
     assert report.wins == 0
     assert not completion_check(corridor, always(Action.LEFT))
@@ -69,10 +81,15 @@ def test_bad_policy_is_caught(corridor):
 
 
 def test_route_grid_flags_a_longer_route(open3):
-    # From (0, 0) this policy wanders through the middle row: 6 moves where 4 would do.
+    """A win in 6 moves where 4 would do counts as not optimal and is starred on the route grid.
+
+    This is how the evidence tells a policy that wins from one that wins by a shortest route.
+    """
+    # From (0, 0): right, down, left, down, then right twice along the bottom row.
     plan = {(0, 0): Action.RIGHT, (0, 1): Action.DOWN, (1, 1): Action.LEFT, (1, 0): Action.DOWN}
 
     def wander(observation):
+        """Follows `plan` where it names a move; elsewhere heads right, then down the last column."""
         row, col = divmod(int(np.argmax(observation[0] == PIRATE_MARK)), 3)
         default = Action.RIGHT if row == 2 or col < 2 else Action.DOWN
         return int(plan.get((row, col), default))
@@ -84,7 +101,14 @@ def test_route_grid_flags_a_longer_route(open3):
 
 
 def test_play_greedy_stops_at_the_step_limit(corridor):
+    """A policy that loops between two cells is cut off at the step limit, so an audit always ends.
+
+    The code review checked loop termination and found this cutoff in the CS 370 audit; the
+    test keeps it in place.
+    """
+
     def back_and_forth(observation):
+        """Moves right from column 0 and left from any other, so the pirate never leaves the top row."""
         col = int(np.argmax(observation[0] == PIRATE_MARK)) % 3
         return int(Action.RIGHT if col == 0 else Action.LEFT)
 
@@ -94,6 +118,7 @@ def test_play_greedy_stops_at_the_step_limit(corridor):
 
 
 def test_route_map_marks_start_path_and_treasure(corridor):
+    """The play command's map: 'S' at the start, 'o' along the route, 'T' on the treasure, '#' on walls."""
     env = MazeEnv(corridor)
     route, won = play_greedy(env, bfs_policy(corridor), (1, 0))
     assert won
@@ -101,10 +126,12 @@ def test_route_map_marks_start_path_and_treasure(corridor):
 
 
 def test_cell_policy_matches_the_step_by_step_policy(cs370_maze):
+    """The batched lookup table gives the same audit as the per-move policy from one call for all 50 cells."""
     policy = bfs_policy(cs370_maze)
     calls = []
 
     def batch(observations):
+        """Records the size of each batch it receives, then answers every row with the per-move policy."""
         calls.append(len(observations))
         return np.array([policy(row.reshape(1, -1)) for row in observations])
 

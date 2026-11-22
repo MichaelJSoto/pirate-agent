@@ -14,7 +14,7 @@ change below can be compared with the code that was graded.
 | Settings | globals and magic numbers | one TOML file, every key type- and range-checked |
 | Early stopping | `patience = 10` declared, never read | stops a stalled run after `patience` games |
 | Trained model | never saved | `.keras` file, SHA-256 checked before every load |
-| Tests | none | 138 automated tests, run by CI on every push |
+| Tests | none | 140 automated tests, run by CI on every push |
 | Dependencies | Keras unpinned (ran 3.4 to 3.5) | pinned; 19 known advisories down to 0 |
 | Reference run (seed 1671) | 384 games, 179.9 s (6.43 ms per move) | 296 games, 18.0 s (0.9 ms per move), same laptop, every route shortest |
 
@@ -25,7 +25,7 @@ python -m venv .venv
 .venv\Scripts\activate                 # Windows; on macOS or Linux: source .venv/bin/activate
 python -m pip install -r requirements-dev.txt
 python -m pip install -e . --no-deps   # makes pirate_agent importable from anywhere
-python -m pytest                       # 138 tests, about ten seconds
+python -m pytest                       # 140 tests, about ten seconds
 ```
 
 Then train, check and watch an agent:
@@ -172,11 +172,12 @@ Decisions worth knowing before you change the code:
 
 ## Tests and CI
 
-`python -m pytest` runs 138 tests: the game rules (including regression tests for the two SNHU
+`python -m pytest` runs 140 tests: the game rules (including regression tests for the two SNHU
 starter bugs), every maze and configuration refusal, the replay memory, the route audit, the
 stopping rules, the network and its learning step, the model-file attacks (a `Lambda` layer, a
-renamed `.h5`, a smuggled archive entry, a changed byte), and a full train, evaluate and play cycle
-on a tiny maze.
+renamed `.h5`, a smuggled archive entry, a changed byte), a full train, evaluate and play cycle
+on a tiny maze, and the project rules: every file has its header and every definition has a
+docstring.
 
 GitHub Actions runs three jobs on every push and pull request: Ruff (lint, format, Bandit
 security rules and missing docstrings) with codespell, the test suite, and `pip-audit` on the

@@ -2,6 +2,34 @@
 
 All notable changes to this project. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [2.1.2] - 2026-11-22
+
+Comments only; no behavior changes, and the 2.1.0 evidence and pretrained run still apply.
+The Milestone Two feedback asked that comments carry on through all new work. Ruff's D1 rules
+covered only public definitions outside `tests/`, so 118 definitions had no docstring: all 82
+tests, 27 fixtures, helpers, nested policies and stand-in agent methods in `tests/`, five
+`__init__` methods and `ReplayBuffer.__len__`, and three private helpers in `config.py`.
+
+### Added
+- A docstring on every test: what it proves and the code review finding (S1 to S12) it covers,
+  or the 2.1.0 route polish or CWE-502 model check it backs. Inline comments that only repeated
+  the new docstring were folded into it.
+- Docstrings on every fixture, helper, nested policy and stand-in agent method in `tests/`, on
+  the five `__init__` methods and `ReplayBuffer.__len__`, and on `_check_keys()`,
+  `_check_value()` and `_section()` in `config.py`.
+- The cost of a route audit in the docstrings of `cell_policy()`, `play_greedy()` and
+  `audit_policy()`.
+- Two tests in `tests/test_headers.py`. `test_every_definition_has_a_docstring` walks the
+  syntax tree of every Python file in `src/`, `scripts/` and `tests/` and fails on any function,
+  method or class without a docstring, including the private and nested ones that D1 skips by
+  design. `test_docstring_check_finds_what_ruff_skips` checks that search on a sample, so it
+  cannot pass by finding nothing. 140 tests.
+
+### Changed
+- Ruff's D1 rules now cover `tests/`, `__init__` methods (D107) and magic methods (D105), so a
+  public definition without a docstring fails CI wherever it is.
+- CONTRIBUTING states the wider docstring rule, and the README gives the new test count.
+
 ## [2.1.1] - 2026-11-15
 
 Documentation only; no behavior changes, and the 2.1.0 evidence and pretrained run still apply.

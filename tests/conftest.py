@@ -1,8 +1,8 @@
 """Shared test fixtures: the CS 370 maze and two small mazes that are easy to reason about.
 
 Programmer: Michael Soto
-Date: November 10, 2026
-Version: 2.0.0
+Date: November 22, 2026
+Version: 2.1.2
 Course: CS 499 Computer Science Capstone, Enhancement One (software design and engineering)
 
 Intent:
@@ -27,6 +27,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @pytest.fixture
 def cs370_maze() -> Maze:
+    """The 8 x 8 CS 370 maze: treasure at (7, 7), 50 free cells, the farthest 28 moves away."""
     return load_maze(ROOT / "mazes" / "cs370.maze")
 
 

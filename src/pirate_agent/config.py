@@ -1,8 +1,8 @@
 """Training settings and the TOML configuration file that supplies them.
 
 Programmer: Michael Soto
-Date: November 15, 2026
-Version: 2.1.1
+Date: November 22, 2026
+Version: 2.1.2
 Course: CS 499 Computer Science Capstone, Enhancement One (software design and engineering)
 
 Intent:
@@ -124,6 +124,11 @@ _SECTIONS = {"maze": {"file", "generate"}, "training": set(_TRAINING_RULES), "ou
 
 
 def _check_keys(table: dict[str, Any], allowed: set[str], where: str) -> None:
+    """Refuses any key in `table` that is not in `allowed`, naming each one and the allowed keys.
+
+    A misspelled key would otherwise be dropped without a word, and the setting it meant to
+    change would keep its default, the same silent failure as the unread CS 370 `patience`.
+    """
     unknown = sorted(set(table) - allowed)
     if unknown:
         raise ConfigError(
@@ -133,6 +138,12 @@ def _check_keys(table: dict[str, Any], allowed: set[str], where: str) -> None:
 
 
 def _check_value(name: str, value: Any, rule: tuple[str, float, float], where: str) -> Any:
+    """Returns `value` when it has the rule's type and lies in its range; otherwise raises ConfigError.
+
+    bool is refused first because it is a subclass of int in Python, so `true` would otherwise
+    pass as 1. A float setting accepts a whole number and converts it, but NaN and infinity get
+    their own message, since "must be from 0 to 1; got nan" would not tell the user why.
+    """
     kind, low, high = rule
     if isinstance(value, bool):
         raise ConfigError(f"[{where}] {name} must be a number, not true or false")
@@ -148,6 +159,11 @@ def _check_value(name: str, value: Any, rule: tuple[str, float, float], where: s
 
 
 def _section(data: dict[str, Any], name: str) -> dict[str, Any]:
+    """The [name] table, or an empty one when the file leaves it out so every default applies.
+
+    A plain value under that name, such as `training = 5`, is refused instead of being read as
+    an empty table.
+    """
     table = data.get(name, {})
     if not isinstance(table, dict):
         raise ConfigError(f"[{name}] must be a table of settings")

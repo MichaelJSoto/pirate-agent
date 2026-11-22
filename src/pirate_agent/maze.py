@@ -1,8 +1,8 @@
 """Maze layouts, maze files, the solvable-maze generator, and the game environment.
 
 Programmer: Michael Soto
-Date: November 15, 2026
-Version: 2.1.1
+Date: November 22, 2026
+Version: 2.1.2
 Course: CS 499 Computer Science Capstone, Enhancement One (software design and engineering)
 Origin: rewrites TreasureMaze.py, a starter file SNHU supplied for CS 370 Project Two.
 
@@ -367,6 +367,12 @@ class MazeEnv:
     """
 
     def __init__(self, maze: Maze, rewards: Rewards | None = None) -> None:
+        """Prepares games on `maze`: the reward scale, the loss threshold and the float background.
+
+        The background is converted to float32 once here, so each observation is one copy plus
+        the pirate's mark rather than a fresh conversion of the grid. The pirate waits on the
+        first free cell until reset() places it.
+        """
         self.maze = maze
         self.rewards = rewards or Rewards()
         # The starter file's minimum reward: a game ends as lost once its total falls below this,
