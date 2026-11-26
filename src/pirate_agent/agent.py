@@ -1,8 +1,8 @@
 """Deep Q-network agent: the network, its target copy, one learning step, and safe saving and loading.
 
 Programmer: Michael Soto
-Date: November 15, 2026
-Version: 2.1.1
+Date: November 22, 2026
+Version: 2.1.2
 Course: CS 499 Computer Science Capstone, Enhancement One (software design and engineering)
 Origin: build_model() and train_step() from the CS 370 notebook, and get_data() from the
 GameExperience.py starter file.
@@ -214,6 +214,11 @@ class DQNAgent:
         discount: float = 0.95,
         target_sync_every: int = 50,
     ) -> None:
+        """Wraps `network` with its target copy, an Adam optimizer and the two compiled steps.
+
+        A network with the wrong number of outputs is refused first, because inside the
+        compiled learning step it would fail with a TensorFlow shape error far from its cause.
+        """
         if network.output_shape[-1] != NUM_ACTIONS:
             raise ValueError(f"the network must return {NUM_ACTIONS} Q-values")
         self.network = network

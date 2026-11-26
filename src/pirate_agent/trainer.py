@@ -1,8 +1,8 @@
 """Training loop: epsilon-greedy games, replay learning, early stopping, route polishing and logging.
 
 Programmer: Michael Soto
-Date: November 15, 2026
-Version: 2.1.1
+Date: November 22, 2026
+Version: 2.1.2
 Course: CS 499 Computer Science Capstone, Enhancement One (software design and engineering)
 Origin: qtrain(), Explorer, ReplayLearner, TargetSync and play_training_game() from the CS 370
 notebook.
@@ -143,6 +143,11 @@ class Explorer:
     """Chooses each move epsilon-greedily and counts how often it explored. Kept from CS 370."""
 
     def __init__(self, rng: np.random.Generator) -> None:
+        """Starts both move counters at zero; `rng` is the trainer's seeded generator.
+
+        Sharing that generator with the replay memory means one seed fixes every random move
+        and every sampled batch.
+        """
         self.rng = rng
         self.explored = 0
         self.exploited = 0
@@ -170,6 +175,12 @@ class Trainer:
         rewards: Rewards | None = None,
         rng: np.random.Generator | None = None,
     ) -> None:
+        """Keeps what every run shares: the agent, the maze, the settings, the rewards and one generator.
+
+        Nothing that changes during a run is created here. Each train() call builds its own
+        environment, replay memory, epsilon and win history, so a second run cannot start where
+        the first one ended (finding S1).
+        """
         self.agent = agent
         self.maze = maze
         self.config = config

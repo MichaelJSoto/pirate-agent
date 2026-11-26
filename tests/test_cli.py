@@ -1,8 +1,8 @@
 """Tests for the command-line interface, from argument errors to a full train and evaluate cycle.
 
 Programmer: Michael Soto
-Date: November 10, 2026
-Version: 2.0.0
+Date: November 22, 2026
+Version: 2.1.2
 Course: CS 499 Computer Science Capstone, Enhancement One (software design and engineering)
 
 Intent:
@@ -27,6 +27,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_generate_writes_a_valid_maze(tmp_path, capsys):
+    """generate writes a commented .maze file, reports how much is open, and overwrites only with --force."""
     out = tmp_path / "new.maze"
     assert main(["generate", "--rows", "5", "--cols", "6", "--seed", "3", "--out", str(out)]) == EXIT_OK
     assert out.read_text(encoding="ascii").startswith("; Generated 5 x 6 maze")
@@ -37,11 +38,17 @@ def test_generate_writes_a_valid_maze(tmp_path, capsys):
 
 
 def test_generate_refuses_a_bad_suffix(tmp_path, caplog):
+    """generate refuses an output name that does not end in .maze, with the input-error exit code."""
     assert main(["generate", "--out", str(tmp_path / "maze.txt")]) == EXIT_INPUT
     assert "must end in '.maze'" in caplog.text
 
 
 def test_train_reports_a_bad_maze_before_loading_tensorflow(tmp_path, caplog):
+    """A configuration whose maze has a walled-in treasure exits with EXIT_INPUT and the maze's own message.
+
+    train validates the maze before it imports TensorFlow, so a typo in a maze file is reported
+    without the wait for TensorFlow to load.
+    """
     (tmp_path / "bad.maze").write_text("..\n.#\n", encoding="ascii")  # the treasure is a wall
     (tmp_path / "bad.toml").write_text('[maze]\nfile = "bad.maze"\n', encoding="utf-8")
     assert main(["train", "--config", str(tmp_path / "bad.toml")]) == EXIT_INPUT
@@ -49,12 +56,14 @@ def test_train_reports_a_bad_maze_before_loading_tensorflow(tmp_path, caplog):
 
 
 def test_missing_config_and_run(tmp_path, caplog):
+    """A missing configuration file or run folder is an input error with a message, not a stack trace."""
     assert main(["train", "--config", str(tmp_path / "none.toml")]) == EXIT_INPUT
     assert main(["evaluate", "--run", str(tmp_path / "no-run")]) == EXIT_INPUT
     assert "is not a run folder" in caplog.text
 
 
 def test_usage_errors_exit_with_code_2():
+    """A missing required argument exits with argparse's usage code 2, apart from the project's codes."""
     with pytest.raises(SystemExit) as error:
         main(["train"])
     assert error.value.code == 2
@@ -62,6 +71,13 @@ def test_usage_errors_exit_with_code_2():
 
 @pytest.mark.tf
 def test_train_evaluate_play_and_tamper(tmp_path, capsys, caplog):
+    """The whole cycle on a tiny maze, as a user would run it.
+
+    train saves a solved run whose log holds no home folder path, evaluate verifies the model's
+    hash, play reaches the treasure, and a model changed after training is refused with
+    EXIT_MODEL. The CS 370 results lived only in notebook output (finding S6); these run
+    folders are what replaced it.
+    """
     config = tmp_path / "tiny.toml"
     config.write_text(
         "[maze.generate]\nrows = 3\ncols = 3\nwall_density = 0.0\nseed = 1\n"
@@ -91,5 +107,6 @@ def test_train_evaluate_play_and_tamper(tmp_path, capsys, caplog):
 
 
 def test_shipped_maze_and_configs_exist():
+    """The CS 370 maze and the default configuration the README points users to are in the repository."""
     assert (ROOT / "mazes" / "cs370.maze").is_file()
     assert (ROOT / "configs" / "default.toml").is_file()

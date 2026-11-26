@@ -1,8 +1,8 @@
 """Bounded experience replay memory for the deep Q-learning agent.
 
 Programmer: Michael Soto
-Date: November 15, 2026
-Version: 2.1.1
+Date: November 22, 2026
+Version: 2.1.2
 Course: CS 499 Computer Science Capstone, Enhancement One (software design and engineering)
 Origin: replaces the memory half of GameExperience.py, a starter file SNHU supplied for CS 370.
 
@@ -42,6 +42,12 @@ class ReplayBuffer:
     """A first-in, first-out memory of at most `capacity` transitions."""
 
     def __init__(self, capacity: int, rng: np.random.Generator) -> None:
+        """Creates an empty memory of `capacity` moves that samples with `rng`.
+
+        The capacity is checked by hand because deque would accept 0 (a memory that keeps
+        nothing) and True (as 1) without complaint. The trainer passes in its own seeded
+        generator, so one seed fixes every batch.
+        """
         if isinstance(capacity, bool) or not isinstance(capacity, int) or capacity < 1:
             raise ValueError(f"capacity must be a positive whole number; got {capacity!r}")
         self._items: deque[Transition] = deque(maxlen=capacity)
@@ -53,6 +59,7 @@ class ReplayBuffer:
         return int(self._items.maxlen or 0)
 
     def __len__(self) -> int:
+        """The number of moves stored now, never more than `capacity`. O(1)."""
         return len(self._items)
 
     def add(self, transition: Transition) -> None:

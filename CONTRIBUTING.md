@@ -64,8 +64,13 @@ TOML, YAML and requirements files use the same fields in `#` comments.
 **Comments explain intent and decisions**, not what a line plainly does. "Checked before the
 revisit rule, or the -0.75 penalty could never be paid" is useful; "check if invalid" is not.
 
-**Every public module, class, function and method has a docstring.** Ruff's D1 rules fail CI
-when one is missing. Tests are exempt, because a test's name already states what it checks.
+**Every module, class, function, method and test has a docstring**, private helpers and
+nested functions included. Say what it does and why, with its Big-O cost where that matters.
+For a test, say what it proves and the code review finding (S1 to S12) or claim it backs. A
+docstring explains how the code works; it does not repeat the name or another docstring.
+Ruff's D1 rules fail CI on a public definition without one, and
+`test_every_definition_has_a_docstring` in `tests/test_headers.py` fails on the private and
+nested ones that D1 skips.
 
 **Tests come with every behavior change.** A bug fix starts with a test that fails on the old
 code. Use the fixtures in `tests/conftest.py` so expected numbers stay traceable to the

@@ -1,8 +1,8 @@
 """Route audit: plays a policy greedily from every free cell and compares it with the shortest path.
 
 Programmer: Michael Soto
-Date: November 15, 2026
-Version: 2.1.1
+Date: November 22, 2026
+Version: 2.1.2
 Course: CS 499 Computer Science Capstone, Enhancement One (software design and engineering)
 Origin: the PolicyAudit, route_grid and completion_check cells of the CS 370 notebook.
 
@@ -106,7 +106,8 @@ def cell_policy(maze: Maze, batch_policy: BatchPolicy) -> Policy:
 
     `batch_policy` maps an (n, cells) array of observations to n actions. The returned policy
     gives exactly the moves a per-step call would, because an observation depends only on the
-    pirate's cell.
+    pirate's cell. Cost: one network call for the whole maze instead of one per move, which is
+    up to cells x step limit calls in a full audit.
     """
     env = MazeEnv(maze)
     cells = maze.free_cells
@@ -126,7 +127,10 @@ def cell_policy(maze: Maze, batch_policy: BatchPolicy) -> Policy:
 def play_greedy(
     env: MazeEnv, policy: Policy, start: Cell, step_limit: int | None = None
 ) -> tuple[list[Cell], bool]:
-    """Plays one game from `start` with no exploration. Returns the cells visited and whether it won."""
+    """Plays one game from `start` with no exploration. Returns the cells visited and whether it won.
+
+    Cost: at most `step_limit` moves (4 per maze cell by default), each one policy call.
+    """
     if step_limit is None:
         step_limit = env.maze.size * STEP_LIMIT_FACTOR
     observation = env.reset(start)
@@ -143,7 +147,11 @@ def play_greedy(
 
 
 def audit_policy(maze: Maze, policy: Policy, rewards: Rewards | None = None) -> AuditReport:
-    """Plays `policy` from every free cell and records its route length next to the shortest."""
+    """Plays `policy` from every free cell and records its route length next to the shortest.
+
+    Cost: one O(rows * cols) search, then one game per free cell. The polish stage runs this
+    after every game, which is why the trainer passes it a cell_policy() table.
+    """
     env = MazeEnv(maze, rewards)
     # One search from the treasure gives the fewest moves from every cell at once.
     fewest = shortest_moves(maze.grid, maze.target)
